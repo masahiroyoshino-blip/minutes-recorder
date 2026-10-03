@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>議事録アプリ 試作 Step 0c</title>
+<style>
+  :root { --ink:#1f2328; --sub:#57606a; --line:#d0d7de; --bg:#f6f8fa; --ok:#1a7f37; --ng:#cf222e; --accent:#0969da; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; color:var(--ink); background:#fff; font-size:15px; line-height:1.6; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  .note { color: var(--sub); font-size: 13px; }
+  section { border:1px solid var(--line); border-radius: 10px; padding: 14px; margin: 14px 0; }
+  button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; margin: 4px 6px 4px 0; min-height: 44px; }
+  button.primary { background: var(--accent); color:#fff; border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  input[type=text], input[type=number], select, textarea { font: inherit; padding: 8px; border:1px solid var(--line); border-radius: 8px; width: 100%; }
+  label { display:block; margin: 8px 0 4px; font-weight: 600; font-size: 14px; }
+  .row { display:flex; gap: 10px; flex-wrap: wrap; } .row > div { flex: 1 1 200px; }
+  .meter { height: 12px; background: var(--bg); border:1px solid var(--line); border-radius: 6px; overflow:hidden; margin: 6px 0; }
+  .meter > i { display:block; height:100%; width:0; background: var(--ok); transition: width .1s; }
+  .box { background: var(--bg); border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-word; font-size: 14px; max-height: 300px; overflow:auto; }
+  .check { background:#fff8c5; border:1px solid #d4a72c; border-radius:8px; padding:10px; margin: 8px 0; }
+  .check label { font-weight: 400; display:flex; gap:8px; align-items:flex-start; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border:1px solid var(--line); padding: 6px; text-align: left; vertical-align: top; }
+  .ok { color: var(--ok); font-weight: 600; } .ng { color: var(--ng); font-weight: 600; }
+  .event { display:block; width:100%; text-align:left; }
+  #capFinal span { display:block; } #capInterim { color: var(--sub); }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>議事録アプリ 試作（Step 0c：1画面版）</h1>
+  <p class="note">この画面だけで、ログイン → 予定選択 → 録音 → 書き起こし → 名前当て → ドライブ保存 までを試します。
+  テストには<strong>個人情報・機密情報を含まない音声</strong>だけを使ってください。</p>
+
+  <section id="setupSec">
+    <h2>0. 初期設定（この端末で1回だけ）</h2>
+    <p class="note">管理者から伝えられた2つの値を入れて保存します。この端末のブラウザにだけ保存されます。</p>
+    <label for="cfgClient">ログイン用クライアントID</label>
+    <input type="text" id="cfgClient" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off">
+    <label for="cfgApi">裏側API（GAS）のURL</label>
+    <input type="text" id="cfgApi" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+    <button id="btnCfg" class="primary">保存</button>
+  </section>
+
+  <section>
+    <h2>1. ログイン</h2>
+    <button id="btnLogin" class="primary">Googleでログイン</button>
+    <span id="who" class="note"></span>
+  </section>
+
+  <section>
+    <h2>2. 打合せ情報</h2>
+    <button id="btnEvents" disabled>今日の予定から選ぶ</button>
+    <div id="events"></div>
+    <div class="row">
+      <div><label for="title">打合せタイトル</label><input type="text" id="title"></div>
+      <div><label for="when">日時</label><input type="text" id="when"></div>
+    </div>
+    <div class="row">
+      <div><label for="people">参加者（カンマ区切り）</label><input type="text" id="people" placeholder="吉野, まっつん, おの"></div>
+      <div><label for="format">形式</label><select id="format"><option>Zoom</option><option>Teams</option><option>Google Meet</option><option>対面</option><option>その他</option></select></div>
+    </div>
+    <p class="note" id="countNote"></p>
+  </section>
+
+  <section>
+    <h2>3. 録音</h2>
+    <div class="row">
+      <div><label for="source">音の取り方</label><select id="source"><option value="mic">マイクのみ</option><option value="mix">マイク＋Web会議の音声（PC版Chrome）</option></select></div>
+      <div><label for="segMin">区切りの長さ</label><select id="segMin"><option value="1">1分（動作確認用）</option><option value="15">15分（本番想定）</option></select></div>
+      <div><label for="lang">言語</label><select id="lang"><option value="ja">日本語</option><option value="en">英語</option></select></div>
+    </div>
+    <label><input type="checkbox" id="saveAudio" checked> 区間ごとの音声もドライブに保存する</label>
+    <div class="check">
+      <label><input type="checkbox" class="consent"> 参加者に録音していることを伝えた</label>
+      <label><input type="checkbox" class="consent"> 未成年が参加していない</label>
+      <label><input type="checkbox" class="consent"> 個人情報・機密情報を扱う会議ではない</label>
+    </div>
+    <button id="btnStart" class="primary" disabled>録音開始</button><button id="btnStop" disabled>終了</button>
+    <span id="clock" class="note"></span>
+    <div class="meter"><i id="meter"></i></div>
+    <p class="note" id="progress"></p>
+    <label>リアルタイム字幕（速報）</label>
+    <div class="box" id="capBox"><div id="capFinal"></div><div id="capInterim"></div></div>
+    <label>書き起こし（Gemini）</label>
+    <div class="box" id="transcript"></div>
+  </section>
+
+  <section>
+    <h2>4. 要約 → 名前当て → 保存</h2>
+    <button id="btnSummary" disabled>要約する</button>
+    <div id="speakerMap"></div>
+    <div class="box" id="summaryView" hidden></div>
+    <button id="btnSave" class="primary" disabled>Googleドキュメントに保存</button>
+    <p id="saved" class="note"></p>
+  </section>
+
+  <section>
+    <h2>結果ログ</h2>
+    <button id="btnCopy" class="primary">結果をコピー</button>
+    <div class="scroll"><table id="logTable"><tr><th>時刻</th><th>テスト</th><th>結果</th><th>詳細</th></tr></table></div>
+  </section>
+</main>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var SCOPES = 'openid email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/calendar.readonly';
+  var FOLDER_NAME = '議事録アプリ_試作0c';
+  var cfg = {}, google_ = { token: '', exp: 0 }, session = '', tokenClient = null, pendingToken = null;
+  var LOG = [];
+
+  // ------------------------------------------------ 記録
+  function log(test, ok, detail) {
+    var at = new Date().toLocaleTimeString('ja-JP');
+    LOG.push({ at: at, test: test, ok: ok, detail: detail });
+    var tr = document.createElement('tr');
+    [at, test, ok === true ? 'OK' : ok === false ? 'NG' : '情報', detail].forEach(function (v, i) {
+      var td = document.createElement('td'); td.textContent = v;
+      if (i === 2) td.className = ok === true ? 'ok' : ok === false ? 'ng' : '';
+      tr.appendChild(td);
+    });
+    $('logTable').appendChild(tr);
+  }
+  function errText(e) { return (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || String(e); }
+  function mb(n) { return (n / 1048576).toFixed(2) + 'MB'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ------------------------------------------------ 0. 初期設定（この端末のブラウザに保存）
+  function loadCfg() {
+    try { cfg = JSON.parse(localStorage.getItem('minutesCfg') || '{}'); } catch (e) { cfg = {}; }
+    $('cfgClient').value = cfg.clientId || ''; $('cfgApi').value = cfg.apiUrl || '';
+    if (cfg.clientId && cfg.apiUrl) $('setupSec').querySelector('.note').textContent = '設定済みです。変える場合だけ入力し直してください。';
+  }
+  $('btnCfg').onclick = function () {
+    cfg = { clientId: $('cfgClient').value.trim(), apiUrl: $('cfgApi').value.trim() };
+    try { localStorage.setItem('minutesCfg', JSON.stringify(cfg)); } catch (e) {}
+    tokenClient = null;
+    log('初期設定', !!(cfg.clientId && cfg.apiUrl), cfg.clientId && cfg.apiUrl ? '保存した' : '2つとも入力が必要');
+  };
+
+  // ------------------------------------------------ 1. ログイン（Googleのトークン → 裏側APIの通行証）
+  function getTokenClient() {
+    if (tokenClient) return tokenClient;
+    if (!window.google || !google.accounts || !google.accounts.oauth2) throw new Error('Googleのログイン部品を読み込めていません');
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: cfg.clientId, scope: SCOPES,
+      callback: function (r) {
+        var p = pendingToken; pendingToken = null;
+        if (r.error) { if (p) p.reject(new Error(r.error + ' ' + (r.error_description || ''))); return; }
+        google_.token = r.access_token; google_.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000;
+        if (p) p.resolve(r.access_token);
+      },
+      error_callback: function (e) { var p = pendingToken; pendingToken = null; if (p) p.reject(new Error(e.type || 'ログイン画面を開けませんでした')); }
+    });
+    return tokenClient;
+  }
+  /** ボタンを押したときにだけ呼ぶ（ログイン画面はユーザー操作がないと開けない） */
+  function requestGoogleToken() {
+    return new Promise(function (resolve, reject) { pendingToken = { resolve: resolve, reject: reject }; getTokenClient().requestAccessToken({ prompt: '' }); });
+  }
+  function googleTokenValid() { return google_.token && Date.now() < google_.exp - 60000; }
+
+  $('btnLogin').onclick = function () {
+    if (!cfg.clientId || !cfg.apiUrl) { log('ログイン', false, '先に「0. 初期設定」を保存してください'); return; }
+    requestGoogleToken().then(function (tok) {
+      log('ログイン Google', true, '許可を受け取った（ドライブ：このアプリが作ったファイルのみ／カレンダー：閲覧のみ）');
+      return api('login', { accessToken: tok });
+    }).then(function (r) {
+      if (!r.ok) throw new Error(r.error);
+      session = r.session;
+      $('who').textContent = 'ログイン中：' + r.email;
+      $('btnEvents').disabled = false;
+      log('ログイン 裏側API', true, r.email + ' として通行証を受け取った（' + Math.round(r.expiresInSec / 3600) + '時間有効）');
+    }).catch(function (e) { log('ログイン', false, errText(e)); });
+  };
+
+  // ------------------------------------------------ 裏側API（GAS）呼び出し
+  function api(action, payload) {
+    var t0 = Date.now();
+    var body = JSON.stringify(Object.assign({ action: action, session: session }, payload || {}));
+    // text/plain で送ると事前確認（プリフライト）が発生せず、GASに届く
+    return fetch(cfg.apiUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, redirect: 'follow' })
+      .then(function (res) { return res.text(); })
+      .then(function (t) {
+        var j; try { j = JSON.parse(t); } catch (e) { throw new Error('裏側APIの返事を読めません（公開設定が「全員」になっているか確認）: ' + t.slice(0, 120)); }
+        j.roundTripMs = Date.now() - t0; return j;
+      });
+  }
+
+  // ------------------------------------------------ Google API（本人の権限で直接）
+  function gfetch(url, opts) {
+    if (!googleTokenValid()) return Promise.reject(new Error('Googleのログイン期限切れ（「Googleでログイン」を押し直してください）'));
+    opts = opts || {}; opts.headers = Object.assign({ Authorization: 'Bearer ' + google_.token }, opts.headers || {});
+    return fetch(url, opts).then(function (res) {
+      return res.text().then(function (t) {
+        var j = null; try { j = JSON.parse(t); } catch (e) {}
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + ((j && j.error && (j.error.message || j.error)) || t.slice(0, 150)));
+        return j;
+      });
+    });
+  }
+
+  // ------------------------------------------------ 2. 今日の予定
+  $('btnEvents').onclick = function () {
+    var d0 = new Date(); d0.setHours(0, 0, 0, 0); var d1 = new Date(d0.getTime() + 86400000);
+    var url = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=20' +
+      '&timeMin=' + encodeURIComponent(d0.toISOString()) + '&timeMax=' + encodeURIComponent(d1.toISOString());
+    gfetch(url).then(function (j) {
+      var list = (j.items || []).filter(function (ev) { return ev.start && ev.start.dateTime; });
+      var box = $('events'); box.innerHTML = '';
+      if (!list.length) { box.textContent = '今日の時間指定の予定はありません'; }
+      list.forEach(function (ev) {
+        var b = document.createElement('button'); b.className = 'event';
+        b.textContent = hm(ev.start.dateTime) + '–' + hm(ev.end.dateTime) + '　' + (ev.summary || '（件名なし）') + '　' + detectFormat(ev);
+        b.onclick = function () { applyEvent(ev); };
+        box.appendChild(b);
+      });
+      log('カレンダー', true, '今日の予定 ' + list.length + '件を取得');
+    }).catch(function (e) { log('カレンダー', false, errText(e)); });
+  };
+  function hm(iso) { var d = new Date(iso); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function detectFormat(ev) {
+    var s = [ev.location, ev.description, ev.hangoutLink, JSON.stringify(ev.conferenceData || '')].join(' ');
+    if (/zoom\.us/i.test(s)) return 'Zoom';
+    if (/teams\.microsoft|teams\.live/i.test(s)) return 'Teams';
+    if (/meet\.google/i.test(s)) return 'Google Meet';
+    return '対面';
+  }
+  function applyEvent(ev) {
+    $('title').value = ev.summary || '';
+    $('when').value = new Date(ev.start.dateTime).toLocaleDateString('ja-JP') + ' ' + hm(ev.start.dateTime) + '–' + hm(ev.end.dateTime);
+    $('format').value = detectFormat(ev);
+    var people = (ev.attendees || []).filter(function (a) { return !a.resource && a.responseStatus !== 'declined'; })
+      .map(function (a) { return a.displayName || String(a.email || '').split('@')[0]; });
+    if (!people.length && ev.organizer) people.push(ev.organizer.displayName || String(ev.organizer.email || '').split('@')[0]);
+    $('people').value = people.join(', ');
+    updateCount();
+    var noName = (ev.attendees || []).filter(function (a) { return !a.resource && !a.displayName; }).length;
+    log('カレンダー 予定選択', true, '参加者 ' + people.length + '人（表示名なし ' + noName + '人＝メールの@前で仮表示）、形式 ' + $('format').value);
+  }
+  function participants() { return $('people').value.split(/[,、，]/).map(function (s) { return s.trim(); }).filter(Boolean); }
+  function updateCount() { var n = participants().length; $('countNote').textContent = n ? 'Geminiには「話者は最大' + n + '人」とだけ伝えます（名前は送りません）' : ''; }
+  $('people').oninput = updateCount;
+
+  // ------------------------------------------------ 3. 録音
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null, cap = null, wakeLock = null, meterStop = null;
+  var segs = [], allUtter = [], prevNotes = '', folderId = null, queue = Promise.resolve();
+
+  function updateConsent() {
+    var all = Array.prototype.every.call(document.querySelectorAll('.consent'), function (c) { return c.checked; });
+    $('btnStart').disabled = !all || !!rec || !session;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.consent'), function (c) { c.onchange = updateConsent; });
+
+  function pickMime() {
+    var c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+    for (var i = 0; i < c.length; i++) { if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c[i])) return c[i]; }
+    return '';
+  }
+  function stopAll(list) { list.forEach(function (s) { if (s.getTracks) s.getTracks().forEach(function (t) { t.stop(); }); else if (s.close) s.close(); }); }
+  function attachMeter(stream) {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 512; src.connect(an);
+    var data = new Uint8Array(an.fftSize), alive = true;
+    (function tick() {
+      if (!alive) { $('meter').style.width = '0'; return; }
+      an.getByteTimeDomainData(data);
+      var sum = 0; for (var i = 0; i < data.length; i++) { var v = (data[i] - 128) / 128; sum += v * v; }
+      $('meter').style.width = Math.round(Math.min(1, Math.sqrt(sum / data.length) * 4) * 100) + '%';
+      requestAnimationFrame(tick);
+    })();
+    return function () { alive = false; ctx.close(); };
+  }
+
+  $('btnStart').onclick = function () {
+    var source = $('source').value, extra = [];
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (mic) {
+      extra.push(mic);
+      log('録音 マイク', true, (mic.getAudioTracks()[0] || {}).label || '取得できた');
+      if (source !== 'mix') return mic;
+      return navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(function (disp) {
+        extra.push(disp);
+        if (!disp.getAudioTracks().length) throw new Error('Web会議の音声が共有されていません（「タブの音声」または「システム音声」をオンに）');
+        log('録音 Web会議の音声', true, disp.getAudioTracks()[0].label);
+        var ctx = new (window.AudioContext || window.webkitAudioContext)(), dest = ctx.createMediaStreamDestination();
+        ctx.createMediaStreamSource(mic).connect(dest);
+        ctx.createMediaStreamSource(new MediaStream(disp.getAudioTracks())).connect(dest);
+        extra.push({ close: function () { ctx.close(); } });
+        return dest.stream;
+      });
+    }).then(function (stream) {
+      rec = { stream: stream, extra: extra, mime: pickMime(), seg: 0, startedAt: Date.now(), segStart: 0, segMs: Number($('segMin').value) * 60000 };
+      segs = []; allUtter = []; prevNotes = ''; $('transcript').textContent = ''; $('capFinal').innerHTML = ''; $('summaryView').hidden = true; $('speakerMap').innerHTML = ''; $('saved').textContent = '';
+      meterStop = attachMeter(stream);
+      startSegment();
+      rec.timer = setInterval(function () {
+        var el = Math.round((Date.now() - rec.startedAt) / 1000);
+        $('clock').textContent = '録音中 ' + Math.floor(el / 60) + '分' + (el % 60) + '秒';
+        if (Date.now() - rec.segStart >= rec.segMs) { rec.recorder.stop(); rec.seg++; startSegment(); }
+      }, 1000);
+      if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {});
+      startCaption();
+      $('btnStart').disabled = true; $('btnStop').disabled = false;
+      log('録音開始', true, (source === 'mix' ? 'マイク＋Web会議' : 'マイクのみ') + '、形式 ' + (rec.mime || '既定') + '、区切り ' + (rec.segMs / 60000) + '分');
+    }).catch(function (e) { stopAll(extra); log('録音開始', false, errText(e)); });
+  };
+
+  function startSegment() {
+    var idx = rec.seg, offsetSec = Math.round((Date.now() - rec.startedAt) / 1000), chunks = [];
+    var r = rec.mime ? new MediaRecorder(rec.stream, { mimeType: rec.mime, audioBitsPerSecond: 32000 }) : new MediaRecorder(rec.stream);
+    r.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    r.onstop = function () { handleSegment(new Blob(chunks, { type: r.mimeType || rec && rec.mime || 'audio/webm' }), idx, offsetSec); };
+    r.start(5000);
+    rec.recorder = r; rec.segStart = Date.now();
+  }
+
+  $('btnStop').onclick = function () {
+    if (!rec) return;
+    clearInterval(rec.timer); rec.recorder.stop(); if (meterStop) meterStop(); stopAll(rec.extra);
+    if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
+    stopCaption();
+    log('録音終了', true, '合計 ' + Math.round((Date.now() - rec.startedAt) / 1000) + '秒、' + (rec.seg + 1) + '区間');
+    $('clock').textContent = ''; $('btnStop').disabled = true; rec = null; updateConsent();
+  };
+
+  function blobToBase64(blob) {
+    return new Promise(function (res, rej) { var r = new FileReader(); r.onload = function () { res(String(r.result).split(',')[1] || ''); }; r.onerror = rej; r.readAsDataURL(blob); });
+  }
+
+  function handleSegment(blob, idx, offsetSec) {
+    var name = '区間' + (idx + 1);
+    segs[idx] = { status: '処理中' }; showProgress();
+    queue = queue.then(function () {
+      if ($('saveAudio').checked) {
+        uploadAudio(blob, name).then(function (f) { log(name + ' 音声保存（ドライブ）', true, mb(blob.size) + '、' + f.name); })
+          .catch(function (e) { log(name + ' 音声保存（ドライブ）', false, errText(e)); });
+      }
+      return blobToBase64(blob).then(function (b64) {
+        return api('transcribe', { audio: b64, mimeType: blob.type, lang: $('lang').value, offsetSec: offsetSec, prevNotes: prevNotes, speakerCount: participants().length });
+      }).then(function (r) {
+        if (!r.ok) throw new Error((r.model ? r.model + ' ／ ' : '') + 'HTTP ' + r.code + ' ／ ' + r.error);
+        var u = r.usage || {};
+        log(name + ' 書き起こし', true, r.model + ' ／ 往復 ' + (r.roundTripMs / 1000).toFixed(1) + '秒 ／ 入力 ' + (u.promptTokenCount || '?') + '・出力 ' + (u.candidatesTokenCount || '?') + ' ／ 発言 ' + r.result.utterances.length + '件 ／ 話者 ' + (r.speakers || []).join('・'));
+        prevNotes = r.result.speakerNotes || prevNotes;
+        allUtter = allUtter.concat(r.result.utterances);
+        renderTranscript();
+        segs[idx].status = '完了';
+      }).catch(function (e) { segs[idx].status = '失敗'; log(name + ' 書き起こし', false, errText(e)); })
+        .then(function () { showProgress(); $('btnSummary').disabled = !allUtter.length || !!rec || segs.some(function (s) { return s && s.status === '処理中'; }); });
+    });
+  }
+  function showProgress() {
+    var done = segs.filter(function (s) { return s && s.status === '完了'; }).length;
+    $('progress').textContent = '書き起こし：' + segs.length + '区間中 ' + done + '区間完了' + (segs.some(function (s) { return s && s.status === '失敗'; }) ? '（失敗あり）' : '');
+  }
+  function renderTranscript() {
+    $('transcript').textContent = allUtter.map(function (u) { return '[' + u.start + '] ' + u.speaker + '：' + u.text; }).join('\n');
+  }
+
+  // 字幕
+  function startCaption() {
+    if (!SR) { log('字幕', false, 'このブラウザは音声認識に未対応'); return; }
+    cap = { sr: new SR(), on: true, restarts: 0, finals: 0, errors: [], started: Date.now() };
+    var sr = cap.sr; sr.lang = $('lang').value === 'en' ? 'en-US' : 'ja-JP'; sr.continuous = true; sr.interimResults = true;
+    sr.onresult = function (e) {
+      var interim = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        var t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { var s = document.createElement('span'); s.textContent = t; $('capFinal').appendChild(s); cap.finals++; } else interim += t;
+      }
+      $('capInterim').textContent = interim; $('capBox').scrollTop = $('capBox').scrollHeight;
+    };
+    sr.onerror = function (e) { cap.errors.push(e.error); if (e.error === 'not-allowed' || e.error === 'service-not-allowed') cap.on = false; };
+    sr.onend = function () { if (cap && cap.on) { cap.restarts++; setTimeout(function () { if (cap && cap.on) { try { sr.start(); } catch (x) {} } }, 300); } };
+    try { sr.start(); } catch (e) { log('字幕', false, errText(e)); }
+  }
+  function stopCaption() {
+    if (!cap) return; cap.on = false; try { cap.sr.stop(); } catch (e) {}
+    log('字幕', cap.finals > 0, Math.round((Date.now() - cap.started) / 1000) + '秒、確定 ' + cap.finals + '件、自動再開 ' + cap.restarts + '回' + (cap.errors.length ? '、エラー ' + cap.errors.join('/') : ''));
+    cap = null;
+  }
+
+  // ------------------------------------------------ ドライブ（本人の権限で直接保存）
+  function ensureFolder() {
+    if (folderId) return Promise.resolve(folderId);
+    var q = encodeURIComponent("name='" + FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false");
+    return gfetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)').then(function (j) {
+      if (j.files && j.files.length) return (folderId = j.files[0].id);
+      return gfetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' })
+      }).then(function (f) { return (folderId = f.id); });
+    });
+  }
+  function multipartUpload(meta, blob) {
+    var boundary = 'b' + Math.random().toString(16).slice(2);
+    var body = new Blob([
+      '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) + '\r\n',
+      '--' + boundary + '\r\nContent-Type: ' + (blob.type || 'application/octet-stream') + '\r\n\r\n', blob, '\r\n--' + boundary + '--'
+    ]);
+    return gfetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
+      method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: body
+    });
+  }
+  function uploadAudio(blob, name) {
+    var ext = /mp4/.test(blob.type) ? '.m4a' : '.webm';
+    return ensureFolder().then(function (fid) {
+      return multipartUpload({ name: stamp() + '_' + ($('title').value || '無題') + '_' + name + ext, parents: [fid] }, blob);
+    });
+  }
+  function stamp() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+
+  // ------------------------------------------------ 4. 要約 → 名前当て → 保存
+  var summary = null;
+  $('btnSummary').onclick = function () {
+    $('btnSummary').disabled = true;
+    var text = allUtter.map(function (u) { return '[' + u.start + '] ' + u.speaker + '：' + u.text; }).join('\n');
+    api('summarize', { text: text, lang: $('lang').value }).then(function (r) {
+      if (!r.ok) throw new Error((r.model ? r.model + ' ／ ' : '') + 'HTTP ' + r.code + ' ／ ' + r.error);
+      summary = r.result;
+      log('要約', true, r.model + ' ／ 往復 ' + (r.roundTripMs / 1000).toFixed(1) + '秒 ／ 議題 ' + summary.agenda.length + '件（決定 ' + summary.agenda.filter(function (a) { return a.decided; }).length + '件）／ TODO ' + summary.todos.length + '件');
+      buildSpeakerMap(); renderSummary(); $('btnSave').disabled = false;
+    }).catch(function (e) { log('要約', false, errText(e)); }).then(function () { $('btnSummary').disabled = false; });
+  };
+
+  function speakersFound() { var s = {}; allUtter.forEach(function (u) { s[u.speaker] = true; }); return Object.keys(s).sort(); }
+  function buildSpeakerMap() {
+    var box = $('speakerMap'); box.innerHTML = '<label>話者の名前当て</label>';
+    var names = participants();
+    speakersFound().forEach(function (sp) {
+      var first = allUtter.filter(function (u) { return u.speaker === sp; })[0];
+      var row = document.createElement('div'); row.className = 'row';
+      var l = document.createElement('div'); l.textContent = sp + '：「' + (first ? first.text.slice(0, 40) : '') + '…」';
+      var r = document.createElement('div'); var sel = document.createElement('select'); sel.dataset.speaker = sp;
+      sel.innerHTML = '<option value="">（そのまま）</option>' + names.map(function (n) { return '<option>' + esc(n) + '</option>'; }).join('');
+      sel.onchange = renderSummary;
+      r.appendChild(sel); row.appendChild(l); row.appendChild(r); box.appendChild(row);
+    });
+  }
+  function nameMap() {
+    var m = {}; Array.prototype.forEach.call(document.querySelectorAll('#speakerMap select'), function (s) { if (s.value) m[s.dataset.speaker] = s.value; });
+    return m;
+  }
+  /** 「話者A」→ 名前 の置き換えはこの画面の中だけで行う（名前は外へ送らない） */
+  function applyNames(text) {
+    var m = nameMap();
+    Object.keys(m).sort(function (a, b) { return b.length - a.length; }).forEach(function (sp) { text = String(text).split(sp).join(m[sp]); });
+    return text;
+  }
+  function renderSummary() {
+    if (!summary) return;
+    var s = summary, lines = ['■ 概要', applyNames(s.overview), '', '■ 確認・決定事項'];
+    s.agenda.forEach(function (a, i) { lines.push((i + 1) + '. ' + applyNames(a.title) + (a.decided ? '　✓決定' : '')); a.points.forEach(function (p) { lines.push('　・' + applyNames(p)); }); });
+    lines.push('', '■ 課題・検討事項'); (s.issues.length ? s.issues : ['なし']).forEach(function (x) { lines.push('・' + applyNames(x)); });
+    lines.push('', '■ TODO'); (s.todos.length ? s.todos : []).forEach(function (t) { lines.push('・' + applyNames(t.task) + '（担当：' + applyNames(t.owner) + '／期限：' + t.due + '）'); });
+    if (!s.todos.length) lines.push('なし');
+    lines.push('', '■ 次回MTG：' + applyNames(s.nextMeeting));
+    $('summaryView').hidden = false; $('summaryView').textContent = lines.join('\n');
+  }
+
+  function minutesHtml() {
+    var s = summary, m = applyNames, h = [];
+    h.push('<h1>' + esc($('title').value || '無題の打合せ') + '</h1>');
+    h.push('<p>日時：' + esc($('when').value) + '<br>形式：' + esc($('format').value) + '<br>出席：' + esc(participants().join('、')) + '<br>配布区分：社内限り</p>');
+    h.push('<h2>1. 概要</h2><p>' + esc(m(s.overview)) + '</p>');
+    h.push('<h2>2. 確認・決定事項</h2>');
+    s.agenda.forEach(function (a, i) {
+      h.push('<h3>' + (i + 1) + '. ' + esc(m(a.title)) + (a.decided ? '　✓決定' : '') + '</h3><ul>' + a.points.map(function (p) { return '<li>' + esc(m(p)) + '</li>'; }).join('') + '</ul>');
+    });
+    h.push('<h2>3. 課題・検討事項</h2><ul>' + (s.issues.length ? s.issues : ['なし']).map(function (x) { return '<li>' + esc(m(x)) + '</li>'; }).join('') + '</ul>');
+    h.push('<h2>4. アクション一覧（TODO）</h2><table border="1" cellpadding="4"><tr><th>No.</th><th>カテゴリ</th><th>タスク</th><th>担当</th><th>期限</th><th>備考</th></tr>' +
+      (s.todos.length ? s.todos.map(function (t, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(t.category || '') + '</td><td>' + esc(m(t.task)) + '</td><td>' + esc(m(t.owner)) + '</td><td>' + esc(t.due) + '</td><td>' + esc(t.note || '') + '</td></tr>'; }).join('') : '<tr><td colspan="6">なし</td></tr>') + '</table>');
+    h.push('<h2>5. 次回MTG</h2><p>' + esc(m(s.nextMeeting)) + '</p>');
+    h.push('<hr><h2>全文書き起こし</h2>' + allUtter.map(function (u) { return '<p>[' + esc(u.start) + '] ' + esc(m(u.speaker)) + '：' + esc(m(u.text)) + '</p>'; }).join(''));
+    h.push('<p><i>AIによる自動作成。固有名詞・数字は原音声で確認し、社外に出す前に人が書き直すこと。</i></p>');
+    return '<html><head><meta charset="utf-8"></head><body>' + h.join('') + '</body></html>';
+  }
+
+  $('btnSave').onclick = function () {
+    $('btnSave').disabled = true;
+    // 長い会議の後はGoogleのログインが切れていることがあるので、ボタン操作のこの時点で取り直す
+    var ready = googleTokenValid() ? Promise.resolve() : requestGoogleToken().then(function () { log('ログイン 再取得', true, '保存のためGoogleのログインを更新した'); });
+    ready.then(ensureFolder).then(function (fid) {
+      var blob = new Blob([minutesHtml()], { type: 'text/html' });
+      return multipartUpload({ name: stamp() + '_' + ($('title').value || '無題') + '_議事録', mimeType: 'application/vnd.google-apps.document', parents: [fid] }, blob);
+    }).then(function (f) {
+      $('saved').innerHTML = '保存しました：<a href="' + esc(f.webViewLink) + '" target="_blank" rel="noopener">' + esc(f.name) + '</a>';
+      log('保存 Googleドキュメント', true, f.name + '（フォルダ「' + FOLDER_NAME + '」）');
+    }).catch(function (e) { log('保存 Googleドキュメント', false, errText(e)); }).then(function () { $('btnSave').disabled = false; });
+  };
+
+  // ------------------------------------------------ 結果をコピー（名前・本文は含めない）
+  $('btnCopy').onclick = function () {
+    var env = {
+      ua: navigator.userAgent,
+      mic: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+      display: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+      speech: !!SR, rec: pickMime() || 'なし', wakeLock: 'wakeLock' in navigator
+    };
+    var lines = ['# 議事録アプリ Step 0c 試験結果', '', '## 環境', '- ' + JSON.stringify(env), '', '## 結果'];
+    LOG.forEach(function (l) { lines.push('- ' + l.at + ' ｜ ' + l.test + ' ｜ ' + (l.ok === true ? 'OK' : l.ok === false ? 'NG' : '情報') + ' ｜ ' + l.detail); });
+    var text = lines.join('\n');
+    var done = function () { log('コピー', true, LOG.length + '件'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+    else { fallbackCopy(text); done(); }
+  };
+  function fallbackCopy(text) { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch (e) {} document.body.removeChild(ta); }
+
+  setInterval(updateConsent, 1000);
+  loadCfg();
+})();
+</script>
+</body>
+</html>
