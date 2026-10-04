@@ -1,5 +1,5 @@
 /**
- * 議事録アプリ v1.2.0（Step 4：スマホ調整・使い方の画面。Step 3：マイページ・管理者への連絡・再表示・音声保存・途中再開）
+ * 議事録アプリ v1.3.0（スマホのメニュー・最近の議事録の整理。Step 4：スマホ調整・使い方の画面。Step 3：マイページ・管理者への連絡・再表示・音声保存・途中再開）
  * 画面：GitHub Pages 上の1ページ。裏側：GAS「議事録アプリ_API」（Gemini の窓口）。
  *
  * 守っていること
@@ -14,7 +14,7 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.1';
   var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
@@ -29,7 +29,7 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-  var DEFAULTS = { folder: null, source: 'auto', lang: 'ja', captions: true, calendar: true, audioButton: true, resume: true };
+  var DEFAULTS = { folder: null, source: 'auto', lang: 'ja', captions: true, calendar: true, audioButton: true, resume: true, recentCount: 3 };
   var S = { user: null, google: { token: '', exp: 0 }, session: '', folderId: null, folderName: '', screen: 'login', m: null, settings: Object.assign({}, DEFAULTS), settingsFileId: null, pendingResume: null };
 
   // ============================================================ 小道具
@@ -55,7 +55,25 @@
     $('#stepper').hidden = !step; $('#mainNav').hidden = name === 'recording'; $('#navHome').classList.toggle('active', name === 'home'); $('#navMy').classList.toggle('active', name === 'mypage'); $('#navHelp').classList.toggle('active', name === 'help');
     $$('#stepper li').forEach(function (li) { li.classList.toggle('on', Number(li.dataset.step) === step); });
     S.screen = name; window.scrollTo(0, 0);
+    closeMenu(); $('#btnMenu').hidden = name === 'recording';
+    $$('#menuPanel [data-nav]').forEach(function (b) { b.toggleAttribute('aria-current', { home: 'home', mypage: 'my', help: 'help' }[name] === b.dataset.nav); if (b.hasAttribute('aria-current')) b.setAttribute('aria-current', 'page'); });
   }
+  // スマホのメニュー（ハンバーガー）
+  function closeMenu() { var p = $('#menuPanel'); if (p) { p.hidden = true; $('#btnMenu').setAttribute('aria-expanded', 'false'); } }
+  $('#btnMenu').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var open = $('#menuPanel').hidden;
+    $('#menuPanel').hidden = !open; this.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('#menuPanel') && !e.target.closest('#btnMenu')) closeMenu(); });
+  $$('#menuPanel [data-nav]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var to = b.dataset.nav; closeMenu();
+      if (to === 'logout') { $('#btnLogout').click(); return; }
+      if (!canLeave()) return;
+      if (to === 'home') goHome(); else if (to === 'my') openMy(); else show('help');
+    });
+  });
   $$('[data-go="home"]').forEach(function (b) { b.addEventListener('click', function () { goHome(); }); });
   /** 仕上げ画面などから離れてよいか。録音中は不可、未保存なら確認する */
   function canLeave() {
@@ -119,6 +137,7 @@
       return gfetch('https://www.googleapis.com/oauth2/v3/userinfo').then(function (u) { S.user.name = (u && (u.name || u.given_name)) || r.email.split('@')[0]; }).catch(function () { S.user.name = r.email.split('@')[0]; });
     }).then(loadSettings).then(function () {
       $('#userName').textContent = S.user.name; $('#userInitial').textContent = S.user.name.slice(0, 1);
+      $('#menuName').textContent = S.user.name; $('#menuInitial').textContent = S.user.name.slice(0, 1); $('#menuEmail').textContent = S.user.email;
       goHome();
     }).catch(function (e) {
       box.textContent = errText(e); box.hidden = false;
@@ -214,39 +233,79 @@
     });
   }
 
-  function loadRecent(q) {
-    var box = $('#recent');
-    box.innerHTML = '<div class="note">読み込んでいます…</div>';
+  var recentState = { q: '', token: '', rmap: null };
+  function loadRecent(q, more) {
+    var box = $('#recent'), count = Number(S.settings.recentCount);
+    if (isNaN(count)) count = 3;
+    $('#recentSection').hidden = false;
+    $('#recent').hidden = !q && count === 0;
+    $('#btnMoreRecent').hidden = true;
+    if (!q && count === 0) return;   // 表示しない設定（検索窓だけ残す）
+    if (!more) { recentState = { q: q, token: '', rmap: null }; box.innerHTML = '<div class="note">読み込んでいます…</div>'; }
     var query = "appProperties has { key='minutesApp' and value='1' } and trashed=false";
     if (q) query += " and fullText contains '" + q.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
-    var docs = gfetch(DRIVE + '/files?pageSize=' + (q ? 30 : 6) + '&orderBy=createdTime desc&corpora=allDrives&includeItemsFromAllDrives=true&supportsAllDrives=true&fields=files(id,name,webViewLink,createdTime,description)&q=' + encodeURIComponent(query));
+    var docs = gfetch(DRIVE + '/files?pageSize=' + (q ? 30 : count) + (more && recentState.token ? '&pageToken=' + encodeURIComponent(recentState.token) : '') +
+      '&orderBy=createdTime desc&corpora=allDrives&includeItemsFromAllDrives=true&supportsAllDrives=true&fields=nextPageToken,files(id,name,webViewLink,createdTime,description)&q=' + encodeURIComponent(query));
     // 仕上げ画面の中身（再表示用）が残っている議事録を調べる
-    var results = gfetch(DRIVE + '/files?spaces=appDataFolder&pageSize=200&fields=files(id,appProperties)&q=' + encodeURIComponent("appProperties has { key='kind' and value='result' }"))
-      .then(function (j) { var map = {}; (j.files || []).forEach(function (f) { if (f.appProperties && f.appProperties.docId) map[f.appProperties.docId] = f.id; }); return map; })
+    var results = recentState.rmap ? Promise.resolve(recentState.rmap) : gfetch(DRIVE + '/files?spaces=appDataFolder&pageSize=1000&fields=files(id,appProperties)&q=' + encodeURIComponent("appProperties has { key='kind' and value='result' }"))
+      .then(function (j) { var map = {}; (j.files || []).forEach(function (f) { if (f.appProperties && f.appProperties.docId) map[f.appProperties.docId] = f.id; }); return (recentState.rmap = map); })
       .catch(function () { return {}; });
     Promise.all([docs, results]).then(function (all) {
       var files = all[0].files || [], rmap = all[1];
-      if (!files.length) { box.innerHTML = '<div class="note">' + (q ? '見つかりませんでした。' : 'まだ議事録はありません。最初の会議を録音してみましょう。') + '</div>'; return; }
-      box.innerHTML = '';
+      recentState.token = all[0].nextPageToken || '';
+      if (!more) box.innerHTML = '';
+      if (!files.length && !more) { box.innerHTML = '<div class="note">' + (q ? '見つかりませんでした。' : 'まだ議事録はありません。最初の会議を録音してみましょう。') + '</div>'; return; }
       files.forEach(function (f) {
         var d = new Date(f.createdTime), rid = rmap[f.id];
-        var head = '<span class="note">' + esc(jDate(d)) + '</span><span class="t">' + esc(f.name.replace(/^\d{4}-\d{2}-\d{2}_/, '').replace(/_議事録$/, '')) + '</span><span class="s">' + esc(f.description || '') + '</span>';
-        var card;
-        if (rid) {
-          card = document.createElement('div'); card.className = 'card doc-card'; card.tabIndex = 0; card.setAttribute('role', 'button');
-          card.innerHTML = head + '<span class="acts"><span class="open">仕上げ画面で開く</span><a href="' + esc(f.webViewLink) + '" target="_blank" rel="noopener">ドキュメント</a></span>';
-          var go = function (e) { if (e.target.closest('a')) return; openResult(rid, f); };
-          card.addEventListener('click', go);
-          card.addEventListener('keydown', function (e) { if (e.key === 'Enter') go(e); });
-        } else {
-          card = document.createElement('a'); card.className = 'card doc-card'; card.href = f.webViewLink; card.target = '_blank'; card.rel = 'noopener';
-          card.innerHTML = head + '<span class="open">Googleドキュメントを開く</span>';
-        }
+        var card = document.createElement('div'); card.className = 'card doc-card'; card.tabIndex = 0; card.setAttribute('role', 'button');
+        card.innerHTML = '<span class="note">' + esc(jDate(d)) + '</span><span class="t">' + esc(f.name.replace(/^\d{4}-\d{2}-\d{2}_/, '').replace(/_議事録$/, '')) + '</span><span class="s">' + esc(f.description || '') + '</span>' +
+          (rid ? '<span class="acts"><span class="open">仕上げ画面で開く</span><a href="' + esc(f.webViewLink) + '" target="_blank" rel="noopener">ドキュメント</a></span>' : '<span class="open">Googleドキュメントを開く</span>') +
+          '<button type="button" class="card-more" aria-label="この議事録のメニュー">…</button>';
+        var go = function (e) {
+          if (e.target.closest('a') || e.target.closest('.card-more')) return;
+          if (rid) openResult(rid, f); else window.open(f.webViewLink, '_blank', 'noopener');
+        };
+        card.addEventListener('click', go);
+        card.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target === card) go(e); });
+        $('.card-more', card).addEventListener('click', function (e) { e.stopPropagation(); openCardMenu(this, f, rid); });
         box.appendChild(card);
       });
+      $('#btnMoreRecent').hidden = q || !recentState.token;
     }).catch(function (e) { noteError('最近の議事録', e); box.innerHTML = '<div class="note">読み込めませんでした（' + esc(errText(e)) + '）</div>'; });
   }
   $('#searchForm').addEventListener('submit', function (e) { e.preventDefault(); loadRecent($('#searchInput').value.trim()); });
+  $('#btnMoreRecent').addEventListener('click', function () { loadRecent(recentState.q, true); });
+
+  // カードの「…」メニュー：一覧から外す（ドキュメントは残す）／ゴミ箱に移す（30日以内は戻せる）
+  var cardTarget = null;
+  function openCardMenu(btn, f, rid) {
+    var m = $('#cardMenu'), r = btn.getBoundingClientRect();
+    cardTarget = { f: f, rid: rid };
+    m.hidden = false;
+    m.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    m.style.left = Math.max(8, Math.min(window.scrollX + r.right - m.offsetWidth, window.scrollX + document.documentElement.clientWidth - m.offsetWidth - 8)) + 'px';
+  }
+  function closeCardMenu() { $('#cardMenu').hidden = true; }
+  document.addEventListener('click', function (e) { if (!e.target.closest('#cardMenu') && !e.target.closest('.card-more')) closeCardMenu(); });
+  window.addEventListener('resize', closeCardMenu);
+  $$('#cardMenu [data-act]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = cardTarget, act = b.dataset.act; closeCardMenu(); if (!t) return;
+      var title = t.f.name.replace(/^\d{4}-\d{2}-\d{2}_/, '').replace(/_議事録$/, '');
+      if (act === 'trash' && !confirm('「' + title + '」をゴミ箱に移します。30日以内ならGoogleドライブのゴミ箱から戻せます。よろしいですか？')) return;
+      if (act === 'hide' && !confirm('「' + title + '」を一覧から外します。ドキュメントはドライブに残ります。よろしいですか？')) return;
+      var body = act === 'trash' ? { trashed: true } : { appProperties: { minutesApp: null } };
+      ensureToken().then(function () {
+        return gfetch(DRIVE + '/files/' + t.f.id + '?supportsAllDrives=true&fields=id', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      }).then(function () {
+        // 仕上げ画面の中身（再表示用）も片付ける
+        if (t.rid) return gfetch(DRIVE + '/files/' + t.rid, { method: 'DELETE' }).catch(function () {});
+      }).then(function () {
+        toast(act === 'trash' ? 'ゴミ箱に移しました' : '一覧から外しました');
+        loadRecent(recentState.q);
+      }).catch(function (e) { noteError('最近の議事録の整理', e); toast('できませんでした：' + errText(e), true); });
+    });
+  });
 
   // ============================================================ 2 録音の準備
   var canMix = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
@@ -304,9 +363,15 @@
   function updateStart() {
     var ok = $$('.consent').every(function (c) { return c.checked; });
     var b = $('#btnStart'); b.disabled = !ok;
-    b.innerHTML = ok ? '<span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始' : '確認の3点にチェックすると開始できます';
+    b.innerHTML = ok ? '<span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始' : '利用規約に同意すると開始できます';
   }
   $$('.consent').forEach(function (c) { c.addEventListener('change', updateStart); });
+  // 利用規約（サブウィンドウ）
+  function closeTerms() { var d = $('#termsDlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
+  $('#btnTerms').addEventListener('click', function () { var d = $('#termsDlg'); if (d.showModal) d.showModal(); else d.setAttribute('open', ''); });
+  $('#termsClose').addEventListener('click', closeTerms);
+  $('#termsAgree').addEventListener('click', function () { $('#consentTerms').checked = true; updateStart(); closeTerms(); });
+  $('#termsDlg').addEventListener('click', function (e) { if (e.target === this) closeTerms(); });   // 外側を押したら閉じる
   $('#btnStart').addEventListener('click', function () { addChipFromInput(); startRecording(); });
 
   // ============================================================ 3 録音
@@ -983,12 +1048,13 @@
     var st = S.settings;
     $('#myFolder').textContent = folderLabel(st.folder) + (st.folder && st.folder.id ? '' : '（標準）');
     $('#btnResetFolder').hidden = !(st.folder && st.folder.id);
-    $('#setSource').value = st.source; $('#setLang').value = st.lang;
+    $('#setSource').value = st.source; $('#setLang').value = st.lang; $('#setRecent').value = String(st.recentCount);
     Object.keys(TOGGLES).forEach(function (id) { $('#' + id).checked = !!st[TOGGLES[id]]; });
     if (!CFG.pickerApiKey && !DEMO) { $('#btnPickFolder').disabled = true; $('#pickNote').textContent = '「フォルダを選ぶ」は、管理者がGoogle Cloudの設定（フォルダ選択用のキー）を終えると使えるようになります。それまでは標準の保存先に保存します。'; }
   }
   $('#setSource').addEventListener('change', function () { S.settings.source = this.value; saveSettings(); });
   $('#setLang').addEventListener('change', function () { S.settings.lang = this.value; saveSettings(); });
+  $('#setRecent').addEventListener('change', function () { S.settings.recentCount = Number(this.value); saveSettings(); });
   Object.keys(TOGGLES).forEach(function (id) {
     $('#' + id).addEventListener('change', function () {
       S.settings[TOGGLES[id]] = this.checked; saveSettings();
@@ -1183,7 +1249,7 @@
       return { ok: false, error: 'demo' };
     });
   }
-  var DEMO_FILES = {}, demoN = 0;
+  var DEMO_FILES = {}, demoN = 0, demoSampleGone = false;
   function demoGoogle(url, opts) {
     return sleep(250).then(function () {
       var mm;
@@ -1196,15 +1262,25 @@
         return { files: all.filter(function (f) { return /settings\.json/.test(decodeURIComponent(url)) ? f.name === 'settings.json' : !!f.appProperties.docId; }) };
       }
       if (/files\/pick\?/.test(url)) return { id: 'pick', name: '見本フォルダ', driveId: '' };
+      if (opts && (opts.method === 'PATCH' || opts.method === 'DELETE') && (mm = url.match(/drive\/v3\/files\/([^/?]+)/))) {
+        var did = mm[1];
+        if (opts.method === 'DELETE') { delete DEMO_FILES[did]; return null; }
+        var b = JSON.parse(opts.body);
+        if (did === 'd1') { demoSampleGone = true; return { id: did }; }
+        if (DEMO_FILES[did]) { if (b.trashed) DEMO_FILES[did].meta.trashed = true; if (b.appProperties) DEMO_FILES[did].meta.appProperties = {}; }
+        return { id: did };
+      }
       if (/calendar/.test(url)) {
         var d = new Date(); d.setMinutes(0, 0, 0);
         var mk = function (h, len, title, loc, names) { var s = new Date(d); s.setHours(h); var e = new Date(s.getTime() + len * 60000); return { summary: title, location: loc, start: { dateTime: s.toISOString() }, end: { dateTime: e.toISOString() }, attendees: names.map(function (n, i) { return { displayName: n, self: i === 0 }; }) }; };
         return { items: [mk(10, 60, '営業部 定例ミーティング', 'https://teams.microsoft.com/l/meetup', ['見本ユーザー', 'まっつん', 'おの']), mk(14, 60, '新規提案 社内レビュー', 'https://zoom.us/j/1', ['見本ユーザー', 'めぐ']), mk(17, 30, 'AIブートキャンプ 振り返り', '会議室A', ['見本ユーザー', 'やっすー', 'もっつ'])] };
       }
       if (/drive\/v3\/files\?pageSize/.test(url)) {
-        var mine = Object.keys(DEMO_FILES).filter(function (k) { return (DEMO_FILES[k].meta.appProperties || {}).minutesApp; }).reverse()
+        var mine = Object.keys(DEMO_FILES).filter(function (k) { return (DEMO_FILES[k].meta.appProperties || {}).minutesApp && !DEMO_FILES[k].meta.trashed; }).reverse()
           .map(function (k) { return { id: k, name: DEMO_FILES[k].meta.name, webViewLink: '#', createdTime: DEMO_FILES[k].created, description: DEMO_FILES[k].meta.description }; });
-        return { files: mine.concat([{ id: 'd1', name: isoDate(new Date()) + '_営業部 定例ミーティング_議事録', webViewLink: '#', createdTime: new Date().toISOString(), description: '10月の重点施策を確認。提案書の初稿を来週水曜までに共有することで合意。' }]) };
+        var all2 = mine.concat(demoSampleGone ? [] : [{ id: 'd1', name: isoDate(new Date()) + '_営業部 定例ミーティング_議事録', webViewLink: '#', createdTime: new Date().toISOString(), description: '10月の重点施策を確認。提案書の初稿を来週水曜までに共有することで合意。' }]);
+        var ps = Number((url.match(/pageSize=(\d+)/) || [])[1]) || 6, start = Number((url.match(/pageToken=(\d+)/) || [])[1]) || 0;
+        return { files: all2.slice(start, start + ps), nextPageToken: start + ps < all2.length ? String(start + ps) : undefined };
       }
       if (/drive\/v3\/files\?fields=files/.test(url)) return { files: [{ id: 'f1', name: FOLDER_NAME }] };
       if (/upload/.test(url)) return { id: 'x', name: '（見本）保存したドキュメント', webViewLink: '#' };

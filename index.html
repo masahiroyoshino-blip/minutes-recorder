@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1.2.0">
+<link rel="stylesheet" href="style.css?v=1.3.1">
 </head>
 <body>
 
@@ -54,6 +54,14 @@
   <nav id="mainNav"><a href="#" id="navHome" class="active">ホーム</a><a href="#" id="navMy">マイページ</a><a href="#" id="navHelp">使い方</a></nav>
   <ol class="stepper" id="stepper" hidden><li data-step="1">1 準備</li><li data-step="2">2 録音</li><li data-step="3">3 仕上げ</li></ol>
   <span class="user" id="userBox"><span class="name" id="userName"></span><span class="avatar" id="userInitial">・</span><button type="button" class="link-btn desktop-only" id="btnLogout">ログアウト</button></span>
+  <button type="button" class="menu-btn mobile-only" id="btnMenu" aria-label="メニュー" aria-expanded="false" aria-controls="menuPanel"><span></span><span></span><span></span></button>
+  <div class="menu-panel" id="menuPanel" hidden>
+    <div class="menu-user"><span class="avatar" id="menuInitial">・</span><span><b id="menuName"></b><span class="small" id="menuEmail" style="display:block"></span></span></div>
+    <button type="button" data-nav="home">ホーム</button>
+    <button type="button" data-nav="my">マイページ</button>
+    <button type="button" data-nav="help">使い方</button>
+    <button type="button" data-nav="logout" class="menu-logout">ログアウト</button>
+  </div>
 </header>
 
 <!-- ============================================================ 1 ホーム -->
@@ -75,7 +83,7 @@
       <div id="events"><div class="empty"><span class="spin"></span> 予定を読み込んでいます…</div></div>
       <div class="list-foot">Googleカレンダーの今日の予定です。選ぶとタイトル・日時・参加者が録音の準備画面に自動で入ります。</div>
     </section>
-    <section aria-label="最近の議事録" style="display:flex;flex-direction:column;gap:14px">
+    <section aria-label="最近の議事録" id="recentSection" style="display:flex;flex-direction:column;gap:14px">
       <div class="recent-head">
         <h2>最近の議事録</h2>
         <form class="search" id="searchForm" role="search">
@@ -84,6 +92,7 @@
         </form>
       </div>
       <div class="recent-grid" id="recent"></div>
+      <div style="display:flex;justify-content:center"><button type="button" class="btn btn-outline" id="btnMoreRecent" hidden>もっと見る</button></div>
     </section>
     <p class="trust">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
@@ -120,12 +129,11 @@
           <p class="small" id="mixUnavailable" hidden style="margin:0">この端末では会議の音声を取り込めないため、マイクのみで録音します。</p>
         </div>
         <div class="card">
-          <b style="font-size:14px">録音の前に確認</b>
-          <label class="check"><input type="checkbox" class="consent">参加者に録音していることを伝えた</label>
-          <label class="check"><input type="checkbox" class="consent">未成年が参加していない</label>
-          <label class="check"><input type="checkbox" class="consent">個人情報・機密情報を扱う会議ではない</label>
+          <b style="font-size:14px">録音の前に</b>
+          <span class="note" style="line-height:1.7"><button type="button" class="text-link" id="btnTerms">利用規約</button>を確認し、この会議が条件を満たしていれば同意してください。</span>
+          <label class="check"><input type="checkbox" class="consent" id="consentTerms">利用規約に同意する</label>
         </div>
-        <button type="button" class="btn btn-primary btn-lg" id="btnStart" disabled>確認の3点にチェックすると開始できます</button>
+        <button type="button" class="btn btn-primary btn-lg" id="btnStart" disabled>利用規約に同意すると開始できます</button>
         <div id="startError" class="error-box" hidden></div>
       </section>
     </div>
@@ -244,6 +252,7 @@
         <label class="check"><input type="checkbox" id="setCalendar">ホームに今日の予定（Googleカレンダー）を出す</label>
         <label class="check"><input type="checkbox" id="setAudio">仕上げ画面に「音声も保存」ボタンを出す</label>
         <label class="check"><input type="checkbox" id="setResume">録音をこのPCに一時保存し、途中で閉じても続きから仕上げられるようにする</label>
+        <label class="field" style="font-weight:400">ホームの「最近の議事録」の表示件数<select class="input" id="setRecent"><option value="3">3件</option><option value="6">6件</option><option value="9">9件</option><option value="0">表示しない（検索だけ使う）</option></select></label>
       </section>
       <section class="card my-card" aria-label="管理者への連絡">
         <b>不具合・要望を送る</b>
@@ -281,7 +290,7 @@
       <h2>基本の流れ</h2>
       <ol>
         <li><b>ホーム</b>で今日の予定の「この予定で録音」を押す（予定がなければ「今すぐ録音」）。タイトル・日時・参加者が自動で入ります。</li>
-        <li><b>準備</b>で内容を確かめ、確認の3点にチェックして「録音を開始」。</li>
+        <li><b>準備</b>で内容を確かめ、「利用規約」を確認して「同意する」にチェックし「録音を開始」。</li>
         <li><b>録音</b>中は大事な場面で「ここ重要」。気づいたことは「自分用メモ」へ（AIには送りません）。</li>
         <li>「終了して仕上げへ」を押すと、AIが書き起こしと要約を作ります（数十秒〜数分）。</li>
         <li><b>仕上げ</b>で「話者A」などに名前を当て、議事録の文字を直接クリックして直します。</li>
@@ -355,10 +364,36 @@
   </form>
 </dialog>
 
+<!-- ============================================================ 利用規約（サブウィンドウ） -->
+<dialog id="termsDlg" class="dlg">
+  <div class="dlg-in terms">
+    <b style="font-size:18px">議事録アプリ 利用規約</b>
+    <span class="small">録音のたびに、この会議が次の条件をすべて満たしているか確認してください。</span>
+    <ol>
+      <li><b>録音の告知</b>：参加者全員に「録音して議事録を作る」ことを伝えている。</li>
+      <li><b>未成年の不参加</b>：未成年が参加していない（未成年が参加する打合せは Google Meet で行う）。</li>
+      <li><b>個人情報・機密情報</b>：個人情報・機密情報を扱う会議ではない。</li>
+      <li><b>用途</b>：議事録は個人の振り返りと社内の叩き台に使う。社外に出すときは、人が内容を確認して書き直す。</li>
+      <li><b>AIへの送信</b>：音声と参加人数がAI（Google Gemini・無料枠）に送られることを理解している。無料枠では、送った内容がサービス改善に使われることがある。</li>
+      <li><b>保存先</b>：議事録は自分のGoogleドライブに保存され、共有範囲は自分で管理する。</li>
+    </ol>
+    <span class="small">βテスト期間中のルールです。内容は管理者が見直すことがあります。</span>
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button type="button" class="btn" id="termsClose">閉じる</button>
+      <button type="button" class="btn btn-primary" id="termsAgree">同意して閉じる</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="card-menu" id="cardMenu" hidden>
+  <button type="button" data-act="hide">一覧から外す<span class="small">ドキュメントはドライブに残ります</span></button>
+  <button type="button" data-act="trash" class="danger">ゴミ箱に移す<span class="small">30日以内ならドライブのゴミ箱から戻せます</span></button>
+</div>
+
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="config.js?v=1.1.0"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js?v=1.2.0"></script>
+<script src="app.js?v=1.3.1"></script>
 </body>
 </html>

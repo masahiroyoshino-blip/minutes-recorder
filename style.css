@@ -276,3 +276,33 @@ h1, h2, h3 { margin: 0; }
   .review[data-tab="transcript"] .minutes { display: none; }
   .review .card { width: 100%; }
 }
+
+/* ---------- v1.3：スマホのメニュー・最近の議事録の整理 */
+.app-header { position: relative; }
+.menu-btn { margin-left: auto; width: 44px; height: 44px; border: none; background: none; border-radius: 10px; cursor: pointer; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.menu-btn span { display: block; width: 20px; height: 2px; border-radius: 1px; background: var(--ink); transition: transform .2s, opacity .2s; }
+.menu-btn[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.menu-btn[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.menu-btn[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.menu-panel { position: absolute; top: 100%; left: 0; right: 0; z-index: 40; background: var(--white); border-bottom: 1px solid var(--line); box-shadow: 0 12px 24px rgba(0,0,0,.08); padding: 8px 16px 14px; display: flex; flex-direction: column; }
+.menu-panel > button { text-align: left; background: none; border: none; border-radius: 10px; padding: 14px 12px; font-size: 16px; font-weight: 700; color: var(--ink); cursor: pointer; }
+.menu-panel > button[aria-current="page"] { background: var(--blue-tint); color: var(--blue); }
+.menu-panel .menu-logout { color: var(--sub); font-weight: 400; font-size: 14px; border-top: 1px solid var(--line); border-radius: 0; margin-top: 6px; }
+.menu-user { display: flex; align-items: center; gap: 12px; padding: 10px 12px 12px; border-bottom: 1px solid var(--line); margin-bottom: 6px; word-break: break-all; }
+.doc-card { position: relative; }
+.doc-card .t { padding-right: 32px; }
+.card-more { position: absolute; top: 12px; right: 10px; width: 36px; height: 36px; border: none; background: none; border-radius: 8px; color: var(--sub); font-size: 20px; line-height: 1; cursor: pointer; }
+.card-more:hover { background: var(--ground); }
+.card-menu { position: absolute; z-index: 50; background: var(--white); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.12); padding: 6px; width: 260px; display: flex; flex-direction: column; }
+.card-menu button { text-align: left; background: none; border: none; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; gap: 2px; color: var(--ink); }
+.card-menu button:hover { background: var(--ground); }
+.card-menu .danger { color: #B42318; }
+@media (max-width: 760px) {
+  .app-header #mainNav, .app-header .user { display: none !important; }
+  .app-header { flex-wrap: nowrap; }
+}
+@media (min-width: 761px) { .menu-panel { display: none !important; } }
+.text-link { background: none; border: none; padding: 0; color: var(--blue); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: inherit; }
+.terms ol { margin: 0; padding-left: 1.4em; font-size: 14px; line-height: 1.8; }
+.terms li + li { margin-top: 6px; }
+.dlg { max-height: calc(100vh - 32px); overflow: auto; }
