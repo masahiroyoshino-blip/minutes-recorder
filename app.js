@@ -14,7 +14,9 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.1.0';
+  var VERSION = '1.1.1';
+  var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
+  var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
   var SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/calendar.readonly';
   var DRIVE = 'https://www.googleapis.com/drive/v3', UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
   var SEG_MS = (Number(CFG.segmentMinutes) || 15) * 60000;
@@ -571,7 +573,13 @@
       if (r.result.speakerNotes) S.m.speakerNotes = r.result.speakerNotes;
       delete seg.blob;
     }).catch(function (e) {
-      seg.status = '失敗'; seg.error = errText(e); noteError('書き起こし ' + segLabel(seg), e);
+      seg.error = errText(e); noteError('書き起こし ' + segLabel(seg), e);
+      seg.retries = seg.retries || 0;
+      if (BUSY_RE.test(seg.error) && seg.retries < AUTO_RETRY_SEC.length && seg.blob) {
+        var wait = AUTO_RETRY_SEC[seg.retries++];
+        seg.status = '混雑待ち'; seg.retryAt = Date.now() + wait * 1000;
+        setTimeout(function () { if (seg.status === '混雑待ち') queue = queue.then(function () { return transcribeSeg(seg); }); }, wait * 1000);
+      } else seg.status = '失敗';
     }).then(function () { renderSegList(); checkAllSettled(); });
   }
   function blobToBase64(blob) {
@@ -581,7 +589,8 @@
   function segCounts() {
     var segs = S.m ? S.m.segs.filter(Boolean) : [];
     var done = segs.filter(function (s) { return s.status === '完了' || s.status === '省略'; }).length;
-    return { all: segs.length, done: done, failed: segs.filter(function (s) { return s.status === '失敗'; }), busy: segs.some(function (s) { return s.status === '待機' || s.status === '処理中' || s.status === '録音中'; }) };
+    return { all: segs.length, done: done, failed: segs.filter(function (s) { return s.status === '失敗'; }), busy: segs.some(function (s) { return s.status === '待機' || s.status === '処理中' || s.status === '録音中' || s.status === '混雑待ち'; }),
+      waiting: segs.filter(function (s) { return s.status === '混雑待ち'; }) };
   }
   function renderSegList() {
     if (!S.m) return;
@@ -627,7 +636,8 @@
     if (S.m.summary) { $('#procBox').hidden = !c.failed.length && !c.busy; }
     if (c.busy) {
       $('#procTitle').innerHTML = '<span class="spin"></span> 書き起こしを仕上げています…';
-      $('#procNote').textContent = c.all + '区間中 ' + c.done + '区間 完了。このまま少しお待ちください（画面は閉じないでください）。';
+      $('#procNote').textContent = c.all + '区間中 ' + c.done + '区間 完了。このまま少しお待ちください（画面は閉じないでください）。' +
+        (c.waiting.length ? ' AIが混み合っているため、' + c.waiting.length + '区間は' + Math.max(1, Math.round((c.waiting[0].retryAt - Date.now()) / 60000)) + '分ほど後に自動でやり直します。' : '');
     } else if (c.failed.length) {
       $('#procTitle').textContent = '一部の区間で書き起こしに失敗しました';
       $('#procNote').textContent = '▶で録れた音を聞けます。音が入っていれば、少し待って「やり直す」を押してください（AIの混雑や取りこぼしのことがあります）。音声はこの画面にだけ残っています。';
