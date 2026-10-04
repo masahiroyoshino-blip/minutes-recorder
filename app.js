@@ -44,12 +44,14 @@
     $$('[data-screen]').forEach(function (el) { el.hidden = el.dataset.screen !== name; });
     $('#appHeader').hidden = name === 'login';
     var step = { prepare: 1, recording: 2, finish: 3 }[name];
-    $('#stepper').hidden = !step; $('#mainNav').hidden = !!step;
+    $('#stepper').hidden = !step; $('#mainNav').hidden = name === 'recording'; $('#navHome').classList.toggle('active', name === 'home');
     $$('#stepper li').forEach(function (li) { li.classList.toggle('on', Number(li.dataset.step) === step); });
     S.screen = name; window.scrollTo(0, 0);
   }
   $$('[data-go="home"]').forEach(function (b) { b.addEventListener('click', function () { goHome(); }); });
-  $('#navHome').addEventListener('click', function (e) { e.preventDefault(); if (S.screen !== 'recording') goHome(); });
+  function homeClick(e) { e.preventDefault(); if (S.screen === 'recording') { toast('録音中はホームに戻れません。先に「終了」を押してください', true); return; } if (S.screen === 'finish' && S.m && !S.m.saved && !confirm('まだ保存していません。ホームに戻ると、この議事録は消えます。戻りますか？')) return; if (S.m && S.screen === 'finish') S.m.saved = true; goHome(); }
+  $('#navHome').addEventListener('click', homeClick);
+  $('#appHeader .logo').addEventListener('click', homeClick); $('#appHeader .logo').style.cursor = 'pointer';
 
   // ============================================================ ログイン
   function isInAppBrowser() {
@@ -452,7 +454,10 @@
       return api('transcribe', { audio: b64, mimeType: seg.blob.type, lang: S.m.lang, offsetSec: seg.offsetSec, prevNotes: S.m.speakerNotes, speakerCount: S.m.people.length });
     }).then(function (r) {
       if (!r.ok) throw new Error(r.error || ('HTTP ' + r.code));
-      seg.utter = r.result.utterances || []; seg.model = r.model; seg.status = '完了';
+      var utter = (r.result && r.result.utterances) || [];
+      seg.diag = '音声 ' + Math.round(seg.blob.size / 1024) + 'KB ・ ' + (r.model || '') + (r.finishReason ? ' ・ ' + r.finishReason : '') + ' ・ 返答キー ' + Object.keys(r.result || {}).join('/');
+      if (!utter.length) throw new Error('AIが発言を1件も返しませんでした（' + seg.diag + '）');
+      seg.utter = utter; seg.model = r.model; seg.status = '完了';
       if (r.result.speakerNotes) S.m.speakerNotes = r.result.speakerNotes;
       delete seg.blob;
     }).catch(function (e) {
@@ -495,7 +500,11 @@
     var fl = $('#failList'); fl.innerHTML = '';
     c.failed.forEach(function (s) {
       var row = document.createElement('div'); row.className = 'row';
-      row.innerHTML = '<span class="st-ng">' + esc(segLabel(s)) + ' の書き起こしに失敗</span><span class="small">' + esc((s.error || '').slice(0, 120)) + '</span>';
+      row.innerHTML = '<span class="st-ng">' + esc(segLabel(s)) + ' の書き起こしに失敗</span><span class="small">' + esc((s.error || '').slice(0, 200)) + '</span>';
+      if (s.blob) {   // 録れた音をその場で聞いて確かめられるように（どこにも送らない）
+        if (!s.audioUrl) s.audioUrl = URL.createObjectURL(s.blob);
+        var au = document.createElement('audio'); au.controls = true; au.src = s.audioUrl; au.style.height = '32px'; row.appendChild(au);
+      }
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.textContent = 'やり直す';
       b.addEventListener('click', function () { b.disabled = true; queue = queue.then(function () { return transcribeSeg(s); }); });
       row.appendChild(b); fl.appendChild(row);
@@ -507,7 +516,7 @@
       $('#procNote').textContent = c.all + '区間中 ' + c.done + '区間 完了。このまま少しお待ちください（画面は閉じないでください）。';
     } else if (c.failed.length) {
       $('#procTitle').textContent = '一部の区間で書き起こしに失敗しました';
-      $('#procNote').textContent = 'AIが混み合っている可能性があります。少し待って「やり直す」を押してください。失敗した区間の音声はこの画面にだけ残っています。';
+      $('#procNote').textContent = '▶で録れた音を聞けます。音が入っていれば、少し待って「やり直す」を押してください（AIの混雑や取りこぼしのことがあります）。音声はこの画面にだけ残っています。';
       if (!S.m.summary && c.done) {
         var go = document.createElement('button'); go.type = 'button'; go.className = 'btn btn-outline'; go.textContent = '失敗した区間を除いて要約する';
         go.addEventListener('click', function () { summarize(); }); acts.appendChild(go);
@@ -531,7 +540,12 @@
   }
   function summarize() {
     var u = allUtter();
-    if (!u.length) { $('#procTitle').textContent = '書き起こせる発言がありませんでした'; $('#procNote').textContent = 'マイクに音が入っていたか確認してください。'; return; }
+    if (!u.length) {
+      $('#procTitle').textContent = '書き起こせる発言がありませんでした'; $('#procNote').textContent = 'マイクに音が入っていたか確認してください。';
+      var h = document.createElement('button'); h.type = 'button'; h.className = 'btn btn-outline'; h.textContent = 'ホームに戻る';
+      h.addEventListener('click', function () { S.m.saved = true; goHome(); }); $('#procActions').innerHTML = ''; $('#procActions').appendChild(h);
+      return;
+    }
     summarizing = true;
     $('#procBox').hidden = false; $('#procTitle').innerHTML = '<span class="spin"></span> 要約を作っています…'; $('#procActions').innerHTML = '';
     var text = u.map(function (x) { return '[' + x.start + '] ' + x.speaker + '：' + x.text; }).join('\n');
