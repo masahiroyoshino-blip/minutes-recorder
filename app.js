@@ -1,5 +1,5 @@
 /**
- * 議事録アプリ v1.3.0（スマホのメニュー・最近の議事録の整理。Step 4：スマホ調整・使い方の画面。Step 3：マイページ・管理者への連絡・再表示・音声保存・途中再開）
+ * 議事録アプリ v1.4.0（保存完了画面に試行の感想欄。v1.3：スマホのメニュー・最近の議事録の整理。Step 4：スマホ調整・使い方の画面。Step 3：マイページ・管理者への連絡・再表示・音声保存・途中再開）
  * 画面：GitHub Pages 上の1ページ。裏側：GAS「議事録アプリ_API」（Gemini の窓口）。
  *
  * 守っていること
@@ -14,7 +14,7 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.3.1';
+  var VERSION = '1.4.0';
   var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
@@ -552,6 +552,7 @@
     stopCaption(); releaseWakeLock(); if (R.meterStop) R.meterStop();
     stopTracks(R.extra);
     S.m.durationSec = Math.round(R.active / 1000);
+    S.m.stoppedAt = Date.now();
     backupSoon();
     if (S.m.source === 'mix' && R.meetHeard === false) toast('録音中、会議の音声（相手の声）が一度も届いていませんでした。共有のしかたを確認してください', true);
     openFinish();
@@ -774,6 +775,7 @@
     return api('summarize', { text: text, lang: S.m.lang }).then(function (r) {
       if (!r.ok) throw new Error(r.error || ('HTTP ' + r.code));
       S.m.summary = r.result; S.m.edited = false;
+      if (!S.m.readyAt) S.m.readyAt = Date.now();
       buildSpeakerSelects(); renderMinutes(); renderTranscript();
       $('#speakerBox').hidden = false; $('#reviewBox').hidden = false; $('#finTabs').hidden = false; $('#btnSave').disabled = false;
       renderProcessing();
@@ -793,7 +795,7 @@
   $$('#finTabs button').forEach(function (b) { b.addEventListener('click', function () { setFinTab(b.dataset.tab); }); });
   $('#btnResummary').addEventListener('click', function () {
     if (S.m.edited && !confirm('手直しした内容は元に戻ります。要約を作り直しますか？')) return;
-    S.m.summary = null; $('#btnSave').disabled = true; summarize();
+    S.m.summary = null; S.m.resummaries = (S.m.resummaries || 0) + 1; $('#btnSave').disabled = true; summarize();
   });
 
   function speakers() { var s = {}; allUtter().forEach(function (u) { s[u.speaker] = true; }); return Object.keys(s).sort(); }
@@ -920,6 +922,7 @@
     btn.disabled = true;
     var folder = null;
     var desc = String(m.summary.overview || '').slice(0, 140);
+    m.editedAtSave = !!m.edited;
     ensureToken().then(ensureFolder).then(function (f) {
       folder = f;
       return multipartUpload({ name: baseName(m) + '_議事録', mimeType: 'application/vnd.google-apps.document', parents: [f.id], description: desc, appProperties: { minutesApp: '1' } }, new Blob([docHtml()], { type: 'text/html' }));
@@ -931,6 +934,7 @@
       $('#savedName').textContent = m.saved.name; $('#savedOpen').href = m.saved.webViewLink;
       $('#savedFolder').textContent = folderLabel(folder);
       updateAudioButtons();
+      openRate();
       show('saved');
     }).catch(function (e) {
       noteError('保存', e);
@@ -981,6 +985,45 @@
   }
   $('#btnAudio').addEventListener('click', function () { saveAudio(this); });
   $('#btnAudio2').addEventListener('click', function () { saveAudio(this); });
+
+  // ============================================================ 試行の感想（保存完了画面。管理者のスプレッドシートに1行）
+  var rate = { v: 0 };
+  var RATE_LABEL = ['', 'よくない', 'いまひとつ', 'ふつう', '良い', 'とても良い'];
+  function openRate() {
+    rate = { v: 0 };
+    $('#rateSaved').value = ''; $('#rateComment').value = ''; paintStars(0);
+    $('#rateBox').hidden = !!(S.m && (S.m.viewing || S.m.rated));
+  }
+  function paintStars(v) {
+    $$('#rateStars button').forEach(function (b) { var on = Number(b.dataset.v) <= v; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(Number(b.dataset.v) === v)); });
+    $('#rateLabel').textContent = RATE_LABEL[v] || '';
+    $('#rateSend').disabled = !(v && $('#rateSaved').value !== '');
+  }
+  $$('#rateStars button').forEach(function (b) { b.setAttribute('role', 'radio'); b.addEventListener('click', function () { rate.v = Number(b.dataset.v); paintStars(rate.v); }); });
+  $('#rateSaved').addEventListener('change', function () { paintStars(rate.v); });
+  $('#rateSkip').addEventListener('click', function () { $('#rateBox').hidden = true; });
+  function usageStats() {
+    var m = S.m, segs = (m.segs || []).filter(Boolean), ua = navigator.userAgent;
+    var models = {}; segs.forEach(function (s) { if (s.model) models[s.model] = (models[s.model] || 0) + 1; });
+    return {
+      app: VERSION, device: IS_IOS ? 'iPhone/iPad' : /Android/i.test(ua) ? 'Android' : 'PC',
+      browser: /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'その他',
+      format: m.format, source: m.source === 'mix' ? 'マイク＋会議の音声' : 'マイクのみ', lang: m.lang,
+      minutes: Math.round((m.durationSec || 0) / 6) / 10, people: (m.people || []).length, segs: segs.length,
+      failed: segs.filter(function (s) { return s.status === '失敗'; }).length,
+      retries: segs.reduce(function (a, s) { return a + (s.retries || 0); }, 0),
+      models: Object.keys(models).map(function (k) { return k + '×' + models[k]; }).join(' '),
+      readySec: m.stoppedAt && m.readyAt ? Math.round((m.readyAt - m.stoppedAt) / 1000) : '',
+      resummaries: m.resummaries || 0, edited: !!m.editedAtSave, audioSaved: !!m.audioSaved, resumed: !!m.resumed
+    };
+  }
+  $('#rateSend').addEventListener('click', function () {
+    var btn = this; btn.disabled = true;
+    api('feedback', { rating: rate.v, savedMin: Number($('#rateSaved').value), comment: $('#rateComment').value.trim(), stats: usageStats() }).then(function (r) {
+      if (!r.ok) throw new Error(r.error || ('HTTP ' + r.code));
+      S.m.rated = true; $('#rateBox').hidden = true; toast('感想を送りました。ありがとうございます');
+    }).catch(function (e) { noteError('感想の送信', e); toast('送れませんでした：' + errText(e), true); btn.disabled = false; });
+  });
 
   // ============================================================ 仕上げ画面の再表示（最近の議事録から）
   function openResult(rid, file) {
@@ -1235,6 +1278,7 @@
     return sleep(wait).then(function () {
       if (action === 'login') return { ok: true, email: 'demo@' + (CFG.allowedDomain || 'example.com'), session: 'demo' };
       if (action === 'report') return { ok: true };
+      if (action === 'feedback') { window.__demoFeedback = p; return { ok: true }; }
       if (action === 'transcribe') {
         var base = p.offsetSec, n = Math.max(2, Math.min(3, p.speakerCount || 3)), L = ['話者A', '話者B', '話者C'].slice(0, n);
         var texts = ['では今月の重点施策から確認していきます。', '新規の提案は今週中に初稿をまとめて、来週水曜に共有します。', '担当をお願いしてもいいですか。', 'はい、先週の資料をベースに作ります。', '顧客リストの更新はどうしましょうか。', '次回までに担当を決めましょう。'];

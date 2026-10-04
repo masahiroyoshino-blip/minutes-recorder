@@ -306,3 +306,11 @@ h1, h2, h3 { margin: 0; }
 .terms ol { margin: 0; padding-left: 1.4em; font-size: 14px; line-height: 1.8; }
 .terms li + li { margin-top: 6px; }
 .dlg { max-height: calc(100vh - 32px); overflow: auto; }
+
+/* ---------- v1.4：試行の感想欄 */
+.saved .rate-card { padding: 28px 32px; display: flex; flex-direction: column; align-items: stretch; gap: 14px; text-align: left; }
+.stars { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.stars button { width: 44px; height: 44px; border: none; background: none; font-size: 30px; line-height: 1; color: #D6D3D4; cursor: pointer; padding: 0; }
+.stars button.on { color: var(--gold); }
+.stars .small { margin-left: 8px; }
+@media (max-width: 760px) { .saved .rate-card { padding: 22px 20px; } }
