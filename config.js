@@ -5,8 +5,8 @@
  *   apiUrl   : 裏側GAS「議事録アプリ_API」のウェブアプリURL（…/exec）
  */
 window.MINUTES_CONFIG = {
-  clientId: 'ここにクライアントIDを貼る',
-  apiUrl: 'ここに裏側APIのURLを貼る',
+  clientId: '587982494338-389rmsmd5b20ogu2is01ujh8bdlr9571.apps.googleusercontent.com',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbzYVWAH6OR1GjM9k1OVKNK26eBLLusVW-XtljbpEqK-7Bp2JCckm_t11knz1nvH3q7r/exec',
   allowedDomain: 'replayce.co.jp',
   folderName: '議事録アプリ',
   segmentMinutes: 15,
