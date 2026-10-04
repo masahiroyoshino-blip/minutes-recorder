@@ -1,5 +1,5 @@
 /**
- * 議事録アプリ v1.1.0（Step 3：マイページ・管理者への連絡・仕上げ画面の再表示・音声保存・途中再開）
+ * 議事録アプリ v1.2.0（Step 4：スマホ調整・使い方の画面。Step 3：マイページ・管理者への連絡・再表示・音声保存・途中再開）
  * 画面：GitHub Pages 上の1ページ。裏側：GAS「議事録アプリ_API」（Gemini の窓口）。
  *
  * 守っていること
@@ -14,7 +14,8 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.1.1';
+  var VERSION = '1.2.0';
+  var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
   var SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/calendar.readonly';
@@ -51,7 +52,7 @@
     $$('[data-screen]').forEach(function (el) { el.hidden = el.dataset.screen !== name; });
     $('#appHeader').hidden = name === 'login';
     var step = { prepare: 1, recording: 2, finish: 3 }[name];
-    $('#stepper').hidden = !step; $('#mainNav').hidden = name === 'recording'; $('#navHome').classList.toggle('active', name === 'home'); $('#navMy').classList.toggle('active', name === 'mypage');
+    $('#stepper').hidden = !step; $('#mainNav').hidden = name === 'recording'; $('#navHome').classList.toggle('active', name === 'home'); $('#navMy').classList.toggle('active', name === 'mypage'); $('#navHelp').classList.toggle('active', name === 'help');
     $$('#stepper li').forEach(function (li) { li.classList.toggle('on', Number(li.dataset.step) === step); });
     S.screen = name; window.scrollTo(0, 0);
   }
@@ -69,6 +70,7 @@
   function homeClick(e) { e.preventDefault(); if (canLeave()) goHome(); }
   $('#navHome').addEventListener('click', homeClick);
   $('#navMy').addEventListener('click', function (e) { e.preventDefault(); if (canLeave()) openMy(); });
+  $('#navHelp').addEventListener('click', function (e) { e.preventDefault(); if (canLeave()) show('help'); });
   $('#appHeader .logo').addEventListener('click', homeClick); $('#appHeader .logo').style.cursor = 'pointer';
 
   // ============================================================ ログイン
@@ -122,6 +124,7 @@
       box.textContent = errText(e); box.hidden = false;
     }).then(function () { btn.disabled = false; });
   });
+  $('#btnLogout2').addEventListener('click', function () { $('#btnLogout').click(); });
   $('#btnLogout').addEventListener('click', function () {
     if (S.screen === 'recording') { toast('録音中はログアウトできません', true); return; }
     if (window.google && google.accounts && google.accounts.oauth2 && S.google.token && !DEMO) { try { google.accounts.oauth2.revoke(S.google.token, function () {}); } catch (e) {} }
@@ -327,6 +330,7 @@
       throw new Error('マイクを使えませんでした（' + (e.name === 'NotAllowedError' ? 'ブラウザのマイク許可を確認してください' : e.name || e) + '）');
     }).then(function (mic) {
       extra.push(mic);
+      watchMic(mic);
       if (source !== 'mix') return { stream: mic, extra: extra };
       return navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(function (disp) {
         extra.push(disp);
@@ -344,6 +348,31 @@
       });
     });
   }
+  /** マイクが止まった・一時的に途切れた（スマホで画面を離れた等）ことを知らせる */
+  function watchMic(mic) {
+    var t = mic.getAudioTracks()[0]; if (!t) return;
+    t.addEventListener('mute', function () { if (R && !R.stopped) R.mutedAt = Date.now(); });
+    t.addEventListener('unmute', function () {
+      if (!R || R.stopped || !R.mutedAt) return;
+      var sec = Math.round((Date.now() - R.mutedAt) / 1000); R.mutedAt = 0;
+      if (sec >= 2) { noteError('録音の途切れ', sec + '秒'); toast('約' + sec + '秒、マイクの音が途切れていました（画面を離れていた等）。その間は録音されていません', true); }
+    });
+    t.addEventListener('ended', function () {
+      if (!R || R.stopped) return;
+      noteError('録音', 'マイクが止まりました');
+      toast('マイクが止まったため録音を終了しました。ここまでの分で議事録を作ります', true);
+      stopRecording();
+    });
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!R || R.stopped || !IS_TOUCH) return;
+    if (document.visibilityState === 'hidden') R.hiddenAt = Date.now();
+    else if (R.hiddenAt) {
+      var sec = Math.round((Date.now() - R.hiddenAt) / 1000); R.hiddenAt = 0;
+      if (sec >= 3) toast('約' + sec + '秒、画面を離れていました。スマホではその間の録音が止まっていることがあります', true);
+    }
+  });
+  var IS_TOUCH = IS_IOS || /Android/i.test(navigator.userAgent);
   function silentStream(extra) {   // 見本モード用：無音の音声
     var ctx = new (window.AudioContext || window.webkitAudioContext)(), dest = ctx.createMediaStreamDestination(), osc = ctx.createOscillator(), g = ctx.createGain();
     g.gain.value = 0.0001; osc.connect(g); g.connect(dest); osc.start();
@@ -514,6 +543,8 @@
   // 新しいChromeは start(音声トラック) で、マイク以外の音も字幕にできる。古いChromeは引数を無視してマイクだけになる
   function startCaption() {
     if (S.m && !S.settings.captions) { $('#capNote').textContent = '字幕はマイページでオフになっています。録音と書き起こしは続いています。'; return; }
+    // iPhone・iPad は字幕と録音がマイクを取り合って録音が止まることがあるため、録音を優先する
+    if (IS_IOS) { $('#capNote').textContent = 'iPhone・iPadでは録音を優先するため、字幕は出しません。議事録は終了後にAIが作ります。'; return; }
     if (!SR || !S.m) { $('#capNote').textContent = 'このブラウザは字幕に対応していません。録音と書き起こしは続いています。'; return; }
     stopCaption();
     cap = { sr: new SR(), on: true, interim: null };
@@ -610,7 +641,8 @@
     var m = S.m;
     $('#finTitle').textContent = m.title;
     $('#finMeta').textContent = (m.when || jDate(m.startedAt)) + ' ・ ' + m.format + ' ・ 参加者' + m.people.length + '人 ・ 録音 ' + hms(m.durationSec);
-    $('#btnSave').disabled = true; $('#speakerBox').hidden = true; $('#reviewBox').hidden = true; $('#procBox').hidden = false;
+    $('#btnSave').disabled = true; $('#speakerBox').hidden = true; $('#reviewBox').hidden = true; $('#finTabs').hidden = true; $('#procBox').hidden = false;
+    setFinTab('minutes');
     $('#btnSaveLabel').textContent = m.viewing ? 'ドキュメントに反映' : 'Googleドキュメントに保存';
     $('#btnOpenDoc').hidden = !m.viewing; if (m.viewing) $('#btnOpenDoc').href = m.saved.webViewLink || '#';
     updateAudioButtons();
@@ -678,7 +710,7 @@
       if (!r.ok) throw new Error(r.error || ('HTTP ' + r.code));
       S.m.summary = r.result; S.m.edited = false;
       buildSpeakerSelects(); renderMinutes(); renderTranscript();
-      $('#speakerBox').hidden = false; $('#reviewBox').hidden = false; $('#btnSave').disabled = false;
+      $('#speakerBox').hidden = false; $('#reviewBox').hidden = false; $('#finTabs').hidden = false; $('#btnSave').disabled = false;
       renderProcessing();
     }).catch(function (e) {
       noteError('要約', e);
@@ -689,6 +721,11 @@
       $('#procActions').appendChild(reportLink('要約に失敗：' + errText(e)));
     }).then(function () { summarizing = false; });
   }
+  function setFinTab(tab) {
+    $('#reviewBox').dataset.tab = tab;
+    $$('#finTabs button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.tab === tab)); });
+  }
+  $$('#finTabs button').forEach(function (b) { b.addEventListener('click', function () { setFinTab(b.dataset.tab); }); });
   $('#btnResummary').addEventListener('click', function () {
     if (S.m.edited && !confirm('手直しした内容は元に戻ります。要約を作り直しますか？')) return;
     S.m.summary = null; $('#btnSave').disabled = true; summarize();
@@ -894,7 +931,7 @@
       buildSpeakerSelects();
       $('#minutesBody').innerHTML = d.minutesHtml || minutesInnerHtml();
       renderTranscript();
-      $('#speakerBox').hidden = false; $('#reviewBox').hidden = false; $('#btnSave').disabled = false;
+      $('#speakerBox').hidden = false; $('#reviewBox').hidden = false; $('#finTabs').hidden = false; $('#btnSave').disabled = false;
       S.m.edited = false;
     }).catch(function (e) {
       noteError('仕上げ画面の再表示', e);

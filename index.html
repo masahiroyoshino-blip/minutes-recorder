@@ -5,11 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#FFFFFF">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="議事録">
 <title>議事録アプリ｜RePlayce</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1.1.0">
+<link rel="stylesheet" href="style.css?v=1.2.0">
 </head>
 <body>
 
@@ -48,9 +51,9 @@
 <header class="app-header" id="appHeader" hidden>
   <img class="logo" src="replayce-logo.png" alt="RePlayce">
   <span class="app-name">議事録</span>
-  <nav id="mainNav"><a href="#" id="navHome" class="active">ホーム</a><a href="#" id="navMy">マイページ</a></nav>
+  <nav id="mainNav"><a href="#" id="navHome" class="active">ホーム</a><a href="#" id="navMy">マイページ</a><a href="#" id="navHelp">使い方</a></nav>
   <ol class="stepper" id="stepper" hidden><li data-step="1">1 準備</li><li data-step="2">2 録音</li><li data-step="3">3 仕上げ</li></ol>
-  <span class="user" id="userBox"><span class="name" id="userName"></span><span class="avatar" id="userInitial">・</span><button type="button" class="link-btn" id="btnLogout">ログアウト</button></span>
+  <span class="user" id="userBox"><span class="name" id="userName"></span><span class="avatar" id="userInitial">・</span><button type="button" class="link-btn desktop-only" id="btnLogout">ログアウト</button></span>
 </header>
 
 <!-- ============================================================ 1 ホーム -->
@@ -143,6 +146,7 @@
     </div>
   </div></div>
   <main class="rec-grid">
+    <div class="notice mobile-only" id="mobileWarn"><span><b>録音が終わるまで、この画面のままにしてください。</b>画面を消したり、別のアプリに切り替えたりすると録音が止まります。</span></div>
     <section class="card captions" aria-label="リアルタイム字幕">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:14px">リアルタイム字幕</b><span class="pill pill-gray" style="font-weight:400" id="capPill">速報</span></div>
       <div class="cap-lines" id="capLines" aria-live="polite"></div>
@@ -180,7 +184,8 @@
       <div id="speakerSelects" style="display:flex;gap:18px;flex-wrap:wrap"></div>
       <span class="small" style="margin-left:auto">名前の置き換えはこの画面の中だけで行います</span>
     </section>
-    <div class="review" id="reviewBox" hidden>
+    <div class="mtabs mobile-only" id="finTabs" role="tablist" hidden><button type="button" data-tab="minutes" aria-pressed="true">議事録</button><button type="button" data-tab="transcript" aria-pressed="false">書き起こし</button></div>
+    <div class="review" id="reviewBox" data-tab="minutes" hidden>
       <article class="card minutes" aria-label="議事録">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap"><b style="font-size:16px">議事録</b><span class="small">文字を直接クリックして直せます</span><button type="button" class="link-btn" id="btnResummary" style="margin-left:auto">要約を作り直す</button></div>
         <div class="minutes-body" id="minutesBody" contenteditable="true" spellcheck="false"></div>
@@ -245,9 +250,93 @@
         <span class="note">気づいたこと・困ったことを管理者に送れます（βテスト期間）。</span>
         <div><button type="button" class="btn btn-outline" id="btnFeedback">管理者に送る</button></div>
       </section>
+      <section class="card my-card mobile-only" aria-label="ログアウト" style="flex-direction:column">
+        <b>アカウント</b>
+        <div><button type="button" class="btn" id="btnLogout2">ログアウト</button></div>
+      </section>
     </div>
     <p class="small" id="mySaved" style="margin:0">設定は自動で保存され、別のPCでも同じアカウントなら引き継がれます。</p>
     <p class="small" style="margin:0" id="myVersion"></p>
+  </main>
+</section>
+
+<!-- ============================================================ 7 使い方 -->
+<section data-screen="help" hidden>
+  <main class="page help">
+    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
+      <div><div class="sub">βテスト版</div><h1>使い方</h1></div>
+    </div>
+
+    <section class="card help-card">
+      <h2>使う前に（ルール）</h2>
+      <ul>
+        <li>個人情報・機密情報を扱う会議では使いません。</li>
+        <li>未成年が参加する打合せは Google Meet で行い、このアプリは使いません。</li>
+        <li>録音する前に、参加者に「録音して議事録を作ります」と伝えます。</li>
+        <li>議事録は社内の叩き台です。社外に出すときは、人が確認して書き直します。</li>
+      </ul>
+    </section>
+
+    <section class="card help-card">
+      <h2>基本の流れ</h2>
+      <ol>
+        <li><b>ホーム</b>で今日の予定の「この予定で録音」を押す（予定がなければ「今すぐ録音」）。タイトル・日時・参加者が自動で入ります。</li>
+        <li><b>準備</b>で内容を確かめ、確認の3点にチェックして「録音を開始」。</li>
+        <li><b>録音</b>中は大事な場面で「ここ重要」。気づいたことは「自分用メモ」へ（AIには送りません）。</li>
+        <li>「終了して仕上げへ」を押すと、AIが書き起こしと要約を作ります（数十秒〜数分）。</li>
+        <li><b>仕上げ</b>で「話者A」などに名前を当て、議事録の文字を直接クリックして直します。</li>
+        <li>「Googleドキュメントに保存」で完了。あとからホームの「最近の議事録」→「仕上げ画面で開く」で見返せます。</li>
+      </ol>
+    </section>
+
+    <div class="help-grid">
+      <section class="card help-card">
+        <h2>Zoom・Teamsで録る（PC）</h2>
+        <ol>
+          <li>音の取り方で <b>「マイク＋会議の音声」</b> を選ぶ。</li>
+          <li>共有の画面が出たら、どちらかを選ぶ。
+            <ul>
+              <li>会議を<b>ブラウザ</b>で開いている：その<b>タブ</b>を選び「タブの音声も共有」をオン（いちばん確実）</li>
+              <li>会議を<b>アプリ</b>で開いている：<b>「画面全体」</b>を選び「システム音声を共有」をオン</li>
+            </ul>
+          </li>
+          <li>録音中に <b>「相手の声：届いています」</b>（青）が出ればOK。</li>
+        </ol>
+        <p class="note">Macで初めて使うときは「システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの録音」で Google Chrome をオンにしてください。</p>
+      </section>
+      <section class="card help-card">
+        <h2>対面で録る（iPhone）</h2>
+        <ol>
+          <li><b>Safari</b> で開く（LINE・Slackなどのアプリ内では開かない）。</li>
+          <li>音の取り方は「マイクのみ」。iPhoneは机の真ん中に置く。</li>
+          <li>録音中は<b>画面を消さない・別のアプリに切り替えない</b>。長い会議は充電しながら。</li>
+        </ol>
+        <p class="note">Safariの共有ボタン →「ホーム画面に追加」で、アプリのように開けます。iPhoneでは録音を優先するため、リアルタイム字幕は出しません。</p>
+      </section>
+    </div>
+
+    <section class="card help-card">
+      <h2>困ったとき</h2>
+      <table class="help-table">
+        <tr><th>こんなとき</th><th>こうする</th></tr>
+        <tr><td>「混雑待ち」と出た</td><td>AIが混み合っています。1〜2分後に自動でやり直すので、そのまま待ちます。</td></tr>
+        <tr><td>「書き起こしに失敗」と出た</td><td>▶で音が録れているか確かめ、少し待って「やり直す」。</td></tr>
+        <tr><td>録音中にタブを閉じた・PCが固まった</td><td>開き直してログインすると、ホームに「途中で閉じた録音があります」が出ます。「続きから仕上げる」を押します。</td></tr>
+        <tr><td>相手の声が録れていない</td><td>共有のしかた（上の「Zoom・Teamsで録る」）と、Macの許可を確かめます。</td></tr>
+        <tr><td>保存できない</td><td>一度ログアウトしてログインし直し、もう一度「保存」。保存先を変えている人はマイページも確認。</td></tr>
+        <tr><td>それでも解決しない</td><td>エラーの近くの「このエラーを管理者に知らせる」、またはマイページの「管理者に送る」。</td></tr>
+      </table>
+    </section>
+
+    <section class="card help-card">
+      <h2>データの扱い</h2>
+      <ul>
+        <li>議事録は、<b>自分のGoogleドライブ</b>（標準は「議事録アプリ」フォルダ）にGoogleドキュメントで保存されます。</li>
+        <li>AI（Gemini）に送るのは<b>音声と参加人数だけ</b>です。参加者の名前・自分用メモは送りません。</li>
+        <li>音声ファイルは「音声も保存」を押したときだけ保存されます。</li>
+        <li>途中再開用の一時保存はこのPC（ブラウザ）の中だけにあり、ドキュメントを保存すると消えます。</li>
+      </ul>
+    </section>
   </main>
 </section>
 
@@ -270,6 +359,6 @@
 
 <script src="config.js?v=1.1.0"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js?v=1.1.1"></script>
+<script src="app.js?v=1.2.0"></script>
 </body>
 </html>

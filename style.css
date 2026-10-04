@@ -241,3 +241,38 @@ h1, h2, h3 { margin: 0; }
 .report-link { background: none; border: none; color: #8A1C1C; text-decoration: underline; cursor: pointer; font-size: 13px; padding: 4px 0; }
 #resumeBox .acts { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
 @media (max-width: 760px) { .my-grid { grid-template-columns: 1fr; } }
+
+/* ---------- v1.2：使い方・スマホ調整 */
+.help { max-width: 980px; }
+.help-card { padding: 24px 28px; }
+.help-card h2 { font-size: 17px; margin-bottom: 12px; color: var(--blue-dark); }
+.help-card ol, .help-card ul { margin: 0; padding-left: 1.4em; line-height: 1.9; font-size: 14px; }
+.help-card li + li { margin-top: 4px; }
+.help-card .note { margin: 12px 0 0; line-height: 1.7; }
+.help-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.help-table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.7; }
+.help-table th, .help-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.help-table th { background: var(--blue-soft); color: var(--blue-dark); font-size: 13px; }
+.help-table td:first-child { width: 34%; font-weight: 700; }
+.mtabs { gap: 6px; background: var(--panel); padding: 4px; border-radius: 12px; }
+.mtabs button { flex: 1; min-height: 44px; border: none; border-radius: 9px; background: none; font-weight: 700; color: var(--sub); cursor: pointer; }
+.mtabs button[aria-pressed="true"] { background: var(--white); color: var(--blue); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+@media (max-width: 760px) {
+  .app-header .app-name { display: none; }
+  .app-header nav a { padding: 8px 10px; }
+  .app-header .user { gap: 6px; }
+  .home-head .actions { width: 100%; margin-left: 0; }
+  .home-head .actions .btn { width: 100%; min-height: 56px; font-size: 16px; }
+  .level { display: flex; height: 22px; }
+  .rec-title .meta { display: none; }
+  #meetLevel { display: none; }
+  .help-grid { grid-template-columns: 1fr; }
+  .help-card { padding: 20px; }
+  .help-table td:first-child { width: 40%; }
+  .finbar .actions { position: fixed; left: 0; right: 0; bottom: 0; margin: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--white); border-top: 1px solid var(--line); z-index: 20; display: flex; gap: 8px; }
+  .finbar .actions .btn { flex: 1; min-height: 52px; padding: 8px 10px; white-space: normal; font-size: 13px; }
+  [data-screen="finish"] .page { padding-bottom: 110px; }
+  .review[data-tab="minutes"] .transcript { display: none; }
+  .review[data-tab="transcript"] .minutes { display: none; }
+  .review .card { width: 100%; }
+}
