@@ -286,6 +286,7 @@
         extra.push(disp);
         if (!disp.getAudioTracks().length) throw new Error('会議の音声が共有されていません。共有画面で「タブの音声も共有する」または「システム音声を共有」をオンにしてください');
         var ctx = new (window.AudioContext || window.webkitAudioContext)(), dest = ctx.createMediaStreamDestination();
+        if (ctx.state === 'suspended') ctx.resume();   // 画面共有の後は止まった状態で作られることがある
         ctx.createMediaStreamSource(mic).connect(dest);
         ctx.createMediaStreamSource(new MediaStream(disp.getAudioTracks())).connect(dest);
         extra.push({ close: function () { ctx.close(); } });
@@ -415,7 +416,8 @@
   function releaseWakeLock() { if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; } }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && R && !R.stopped) requestWakeLock(); });
 
-  // 字幕（自分のマイクの音を速報で。保存しない）
+  // 字幕（録音している音＝マイク＋会議の音声を速報で。保存しない）
+  // 新しいChromeは start(音声トラック) で、マイク以外の音も字幕にできる。古いChromeは引数を無視してマイクだけになる
   function startCaption() {
     if (!SR || !S.m) { $('#capNote').textContent = 'このブラウザは字幕に対応していません。録音と書き起こしは続いています。'; return; }
     stopCaption();
@@ -433,11 +435,20 @@
       while (box.children.length > 14) box.removeChild(box.firstChild);
     };
     sr.onerror = function (e) { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { cap.on = false; $('#capNote').textContent = '字幕は使えませんでした（ブラウザの許可）。録音と書き起こしは続いています。'; } };
-    var me = cap;
-    sr.onend = function () { if (me.on && cap === me) setTimeout(function () { if (me.on && cap === me) { try { sr.start(); } catch (x) {} } }, 300); };
-    try { sr.start(); } catch (e) {}
+    var me = cap, src = R && R.stream && R.stream.getAudioTracks()[0];
+    function go() {
+      if (src && src.readyState === 'live' && me.useTrack !== false) {
+        try { me.track = me.track && me.track.readyState === 'live' ? me.track : src.clone(); sr.start(me.track); me.useTrack = true; return; } catch (e) { me.useTrack = false; }
+      }
+      try { sr.start(); } catch (x) {}
+    }
+    sr.onend = function () { if (me.on && cap === me) setTimeout(function () { if (me.on && cap === me) go(); }, 300); };
+    var baseErr = sr.onerror;
+    sr.onerror = function (e) { if (me.useTrack && (e.error === 'audio-capture' || e.error === 'not-allowed')) { me.useTrack = false; return; } baseErr(e); };
+    go();
+    $('#capNote').textContent = S.m.source === 'mix' ? '字幕は速報です。相手の声が出ない場合は、お使いのChromeが未対応です（議事録には入ります）。' : '字幕は速報です。正式な書き起こしは終了後にAIが作ります。';
   }
-  function stopCaption() { if (cap) { cap.on = false; try { cap.sr.stop(); } catch (e) {} cap = null; } }
+  function stopCaption() { if (cap) { cap.on = false; try { cap.sr.stop(); } catch (e) {} if (cap.track) { try { cap.track.stop(); } catch (e) {} } cap = null; } }
 
   // ============================================================ 区間の書き起こし（順番に、失敗しても音声は手元に残す）
   var queue = Promise.resolve();
@@ -450,8 +461,14 @@
   }
   function transcribeSeg(seg) {
     seg.status = '処理中'; seg.error = ''; renderSegList();
+    var kb = Math.round(seg.blob.size / 1024);
     return blobToBase64(seg.blob).then(function (b64) {
-      return api('transcribe', { audio: b64, mimeType: seg.blob.type, lang: S.m.lang, offsetSec: seg.offsetSec, prevNotes: S.m.speakerNotes, speakerCount: S.m.people.length });
+      var req = { audio: b64, mimeType: seg.blob.type, lang: S.m.lang, offsetSec: seg.offsetSec, prevNotes: S.m.speakerNotes, speakerCount: S.m.people.length };
+      // 通信の失敗（Failed to fetch）は1回だけ自動でやり直す
+      return api('transcribe', req).catch(function (e) {
+        if (!/fetch|network|load failed/i.test(errText(e))) throw e;
+        return sleep(8000).then(function () { return api('transcribe', req); });
+      }).catch(function (e) { throw new Error(errText(e) + '（音声 ' + kb + 'KB）'); });
     }).then(function (r) {
       if (!r.ok) throw new Error(r.error || ('HTTP ' + r.code));
       var utter = (r.result && r.result.utterances) || [];
