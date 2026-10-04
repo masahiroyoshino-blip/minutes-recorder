@@ -2,259 +2,216 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>議事録アプリ 録音窓</title>
-<style>
-  :root { --ink:#1f2328; --sub:#57606a; --line:#d0d7de; --bg:#f6f8fa; --ok:#1a7f37; --ng:#cf222e; --accent:#0969da; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; color:var(--ink); background:#fff; font-size:15px; line-height:1.6; }
-  main { max-width: 560px; margin: 0 auto; padding: 16px; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  .note { color: var(--sub); font-size: 13px; }
-  section { border:1px solid var(--line); border-radius: 10px; padding: 12px; margin: 12px 0; }
-  button { font: inherit; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; margin: 4px 6px 4px 0; min-height: 44px; }
-  button.primary { background: var(--accent); color:#fff; border-color: var(--accent); }
-  button:disabled { opacity: .45; cursor: default; }
-  select { font: inherit; padding: 8px; border:1px solid var(--line); border-radius: 8px; width: 100%; }
-  label { display:block; margin: 6px 0 4px; font-weight: 600; font-size: 14px; }
-  .meter { height: 12px; background: var(--bg); border:1px solid var(--line); border-radius: 6px; overflow:hidden; margin: 6px 0; }
-  .meter > i { display:block; height:100%; width:0; background: var(--ok); transition: width .1s; }
-  .box { background: var(--bg); border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-word; font-size: 14px; max-height: 220px; overflow:auto; }
-  #status { font-weight: 600; }
-  .ok { color: var(--ok); } .ng { color: var(--ng); }
-  #capFinal span { display:block; } #capInterim { color: var(--sub); }
-</style>
+<meta name="theme-color" content="#FFFFFF">
+<title>議事録アプリ｜RePlayce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1.0.0">
 </head>
 <body>
-<main>
-  <h1>議事録アプリ 録音窓</h1>
-  <p class="note">この窓で録音し、音声は区切りごとに元のアプリ画面へ渡します。<strong>録音中はこの窓を閉じないでください。</strong>
-  音声や議事録はこのページには残りません。</p>
-  <p id="status">接続を確認しています…</p>
 
-  <section>
-    <label for="source">音の取り方</label>
-    <select id="source"><option value="mic">マイクのみ</option><option value="mix">マイク＋Web会議の音声（PC版Chrome）</option></select>
-    <button id="btnStart" class="primary" disabled>録音開始</button><button id="btnStop" disabled>終了</button>
-    <span id="clock" class="note"></span>
-    <div class="meter"><i id="meter"></i></div>
-    <p class="note" id="segInfo"></p>
-  </section>
+<!-- ============================================================ 0 ログイン -->
+<section data-screen="login">
+  <div class="login-wrap">
+    <div class="login-col">
+      <div class="card login-card">
+        <img class="logo" src="replayce-logo.png" alt="RePlayce">
+        <div class="page-title" style="justify-content:center"><span class="mark4"><span></span><span></span><span></span><span></span></span><h1>議事録アプリ</h1></div>
+        <p style="margin:0;font-size:15px;line-height:1.8;color:var(--ink-2)">Zoom・Teams・対面の会議を録音して、<br>書き起こしと要約をGoogleドキュメントに残します。</p>
+        <button id="btnLogin" class="btn btn-primary btn-lg" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+          Googleアカウントでログイン
+        </button>
+        <p class="note" style="margin:0">会社のアカウント（@<span id="domainLabel">replayce.co.jp</span>）を選んでください</p>
+        <div id="loginError" class="error-box" hidden></div>
+      </div>
+      <div id="inAppWarn" class="notice" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A6A00" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
+        <span><b>アプリの中のブラウザで開いています。</b>このままではGoogleのログインができません。右上のメニューから「ブラウザで開く」を選ぶか、URLをコピーしてChrome（iPhoneはSafari）に貼り付けてください。</span>
+      </div>
+      <div class="card login-rules">
+        <b style="font-size:14px">使う前に</b>
+        <ul>
+          <li>個人情報・機密情報を扱う会議では使いません</li>
+          <li>未成年が参加する打合せはGoogle Meetで行います</li>
+          <li>議事録は社内の叩き台です。社外に出すときは人が確認して書き直します</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <section>
-    <label>リアルタイム字幕（速報）</label>
-    <div class="box" id="capBox"><div id="capFinal"></div><div id="capInterim"></div></div>
-    <p class="note" id="capStat"></p>
-  </section>
+<!-- ============================================================ 共通ヘッダー（ログイン後） -->
+<header class="app-header" id="appHeader" hidden>
+  <img class="logo" src="replayce-logo.png" alt="RePlayce">
+  <span class="app-name">議事録</span>
+  <nav id="mainNav"><a href="#" id="navHome" class="active">ホーム</a></nav>
+  <ol class="stepper" id="stepper" hidden><li data-step="1">1 準備</li><li data-step="2">2 録音</li><li data-step="3">3 仕上げ</li></ol>
+  <span class="user" id="userBox"><span class="name" id="userName"></span><span class="avatar" id="userInitial">・</span><button type="button" class="link-btn" id="btnLogout">ログアウト</button></span>
+</header>
 
-  <section>
-    <label>この窓の記録</label>
-    <div class="box" id="log"></div>
-  </section>
-</main>
+<!-- ============================================================ 1 ホーム -->
+<section data-screen="home" hidden>
+  <main class="page">
+    <div class="home-head">
+      <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
+        <div><div class="sub" id="todayLabel"></div><h1>今日の打合せ</h1></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn btn-primary" id="btnRecordNow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+          今すぐ録音
+        </button>
+      </div>
+    </div>
+    <section class="card" aria-label="今日の予定">
+      <div id="events"><div class="empty"><span class="spin"></span> 予定を読み込んでいます…</div></div>
+      <div class="list-foot">Googleカレンダーの今日の予定です。選ぶとタイトル・日時・参加者が録音の準備画面に自動で入ります。</div>
+    </section>
+    <section aria-label="最近の議事録" style="display:flex;flex-direction:column;gap:14px">
+      <div class="recent-head">
+        <h2>最近の議事録</h2>
+        <form class="search" id="searchForm" role="search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A5A5A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input type="search" id="searchInput" aria-label="議事録を検索" placeholder="タイトル・本文で検索">
+        </form>
+      </div>
+      <div class="recent-grid" id="recent"></div>
+    </section>
+    <p class="trust">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      AI（Gemini）に送るのは音声と参加人数だけです。参加者の名前は送りません。
+    </p>
+  </main>
+</section>
 
-<script>
-(function () {
-  'use strict';
-  var $ = function (id) { return document.getElementById(id); };
-  // 受け渡し相手として認める元画面：GASのウェブアプリ画面（Googleが用意する枠）だけ
-  var PARENT_ORIGIN_RE = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
-  var parentOrigin = null;
-  var opts = { segMin: 1, lang: 'ja', captions: true };
+<!-- ============================================================ 2 録音の準備 -->
+<section data-screen="prepare" hidden>
+  <main class="page">
+    <div><button type="button" class="link-btn" data-go="home"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>ホームに戻る</button></div>
+    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
+      <div><h1>録音の準備</h1><div class="sub" id="prepHint">内容を確認してください。</div></div>
+    </div>
+    <div class="prep-grid">
+      <section class="card prep-main" aria-label="打合せ情報">
+        <label class="field">打合せタイトル<input class="input" id="fTitle" type="text" placeholder="例：営業部 定例ミーティング" maxlength="80"></label>
+        <label class="field">日時<input class="input" id="fWhen" type="text" maxlength="60"></label>
+        <div class="field"><span>形式</span><div class="seg" id="fFormat" role="group" aria-label="形式">
+          <button type="button" data-v="Zoom" aria-pressed="false">Zoom</button><button type="button" data-v="Teams" aria-pressed="false">Teams</button><button type="button" data-v="Google Meet" aria-pressed="false">Google Meet</button><button type="button" data-v="対面" aria-pressed="true">対面</button><button type="button" data-v="その他" aria-pressed="false">その他</button>
+        </div></div>
+        <div class="field"><span>参加者 <span style="font-weight:400;color:var(--sub)" id="peopleCount"></span></span>
+          <div class="chips-input" id="chips"><input type="text" id="chipInput" aria-label="参加者を追加" placeholder="名前を入れてEnter"></div>
+          <span class="note" style="font-weight:400">名前は議事録の出席者欄と、話者の名前当てにだけ使います。AIには人数だけを伝えます。</span>
+        </div>
+        <label class="field" style="max-width:240px">言語<select class="input" id="fLang"><option value="ja">日本語</option><option value="en">英語</option></select></label>
+      </section>
+      <section class="prep-side" aria-label="録音の設定">
+        <div class="card" role="radiogroup" aria-label="音の取り方">
+          <b style="font-size:14px">音の取り方</b>
+          <button type="button" class="radio-card" data-src="mix" role="radio" aria-checked="false" id="srcMix"><span class="dot"></span><span><b>マイク＋会議の音声（おすすめ）</b><span class="h">共有画面で会議のタブ、または「画面全体」と「システム音声」を選びます。ヘッドホンを使っていても相手の声が残ります。</span></span></button>
+          <button type="button" class="radio-card" data-src="mic" role="radio" aria-checked="true" id="srcMic"><span class="dot"></span><span><b>マイクのみ</b><span class="h">対面の会議や、スピーカーで相手の声を流しているとき。</span></span></button>
+          <p class="small" id="mixUnavailable" hidden style="margin:0">この端末では会議の音声を取り込めないため、マイクのみで録音します。</p>
+        </div>
+        <div class="card">
+          <b style="font-size:14px">録音の前に確認</b>
+          <label class="check"><input type="checkbox" class="consent">参加者に録音していることを伝えた</label>
+          <label class="check"><input type="checkbox" class="consent">未成年が参加していない</label>
+          <label class="check"><input type="checkbox" class="consent">個人情報・機密情報を扱う会議ではない</label>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg" id="btnStart" disabled>確認の3点にチェックすると開始できます</button>
+        <div id="startError" class="error-box" hidden></div>
+      </section>
+    </div>
+  </main>
+</section>
 
-  function localLog(text, ok) {
-    var d = document.createElement('div');
-    d.textContent = new Date().toLocaleTimeString('ja-JP') + '  ' + text;
-    if (ok === false) d.className = 'ng';
-    $('log').appendChild(d);
-    $('log').scrollTop = $('log').scrollHeight;
-  }
-  function send(msg, transfer) {
-    if (!parentOrigin || !window.opener) { localLog('元の画面に送れません（元の画面が閉じられた可能性）', false); return false; }
-    window.opener.postMessage(msg, parentOrigin, transfer || []);
-    return true;
-  }
-  function report(test, ok, detail) {
-    localLog(test + '：' + (ok === true ? 'OK' : ok === false ? 'NG' : '') + ' ' + detail, ok);
-    send({ type: 'log', test: test, ok: ok, detail: detail });
-  }
-  function errText(e) { return (e && (e.name ? e.name + ': ' : '') + (e.message || e)) || String(e); }
+<!-- ============================================================ 3 録音中 -->
+<section data-screen="recording" hidden>
+  <div class="recbar"><div class="recbar-in">
+    <div class="rec-state"><span class="rec-dot live" id="recDot"></span><span class="rec-label" id="recLabel">録音中</span></div>
+    <span class="timer" id="timer">00:00:00</span>
+    <div class="level" id="level" aria-hidden="true"></div>
+    <div class="rec-title"><b id="recTitle"></b><span class="note meta" id="recMeta"></span></div>
+    <div class="rec-actions">
+      <button type="button" class="btn btn-mark" id="btnMark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>ここ重要</button>
+      <button type="button" class="btn" id="btnPause">一時停止</button>
+      <button type="button" class="btn btn-primary" id="btnStop"><span style="width:10px;height:10px;background:#fff;border-radius:2px"></span><span class="desktop-only">終了して仕上げへ</span><span class="mobile-only">終了</span></button>
+    </div>
+  </div></div>
+  <main class="rec-grid">
+    <section class="card captions" aria-label="リアルタイム字幕">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:14px">リアルタイム字幕</b><span class="pill pill-gray" style="font-weight:400">速報・自分のマイクの音</span></div>
+      <div class="cap-lines" id="capLines" aria-live="polite"></div>
+      <p class="note" style="margin:auto 0 0" id="capNote">相手の発言も含めた清書と話者分けは、AIが区切りごとに裏で進めています。</p>
+    </section>
+    <aside class="rec-side">
+      <div class="card"><b style="font-size:14px">書き起こしの進み具合</b><div class="bar"><span id="progBar"></span></div><ul class="seg-list" id="segList"></ul></div>
+      <div class="card"><b style="font-size:14px">ここ重要 <span style="font-weight:400;color:var(--sub)" id="markCount">（0件）</span></b><ul class="mark-list" id="markList"></ul><span class="small">議事録の「重要な場面」に時刻つきで載ります</span></div>
+      <label class="card" style="font-size:14px;font-weight:700">自分用メモ<textarea class="memo" id="memo" placeholder="気づいたことを自由に"></textarea><span class="small" style="font-weight:400">議事録の最後にそのまま載ります。AIには送りません。</span></label>
+      <p class="small" style="margin:0">録音中はこの画面を閉じないでください。<span class="mobile-only" style="display:inline">画面をロックしたり別のアプリに切り替えたりすると録音が止まります。</span></p>
+    </aside>
+  </main>
+</section>
 
-  // ------------------------------------------------ 元画面との接続
-  window.addEventListener('message', function (e) {
-    if (!PARENT_ORIGIN_RE.test(e.origin) || e.source !== window.opener) return; // 知らない相手からの連絡は無視
-    var m = e.data || {};
-    if (m.type === 'hello') {
-      parentOrigin = e.origin;
-      opts.segMin = Number(m.segMin) || 1;
-      opts.lang = m.lang === 'en' ? 'en' : 'ja';
-      opts.captions = m.captions !== false;
-      $('status').textContent = '元のアプリ画面と接続しました（区切り ' + opts.segMin + '分）';
-      $('status').className = 'ok';
-      $('btnStart').disabled = false;
-      report('窓 接続', true, '区切り' + opts.segMin + '分、言語' + opts.lang + '、環境 ' + JSON.stringify(envInfo()));
-    } else if (m.type === 'stop') {
-      stopRec();
-    }
-  });
+<!-- ============================================================ 4 仕上げ -->
+<section data-screen="finish" hidden>
+  <div class="finbar"><div class="finbar-in">
+    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span><div><h1 id="finTitle"></h1><div class="note" id="finMeta"></div></div></div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" id="btnSave" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 14h8"/><path d="M8 17h5"/></svg>Googleドキュメントに保存</button>
+    </div>
+  </div></div>
+  <main class="page page-wide" style="padding-top:24px;gap:20px">
+    <section class="card processing" id="procBox">
+      <b id="procTitle"><span class="spin"></span> 書き起こしを仕上げています…</b>
+      <div class="bar"><span id="procBar"></span></div>
+      <div class="note" id="procNote"></div>
+      <div class="fail-list" id="failList"></div>
+      <div id="procActions" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+    </section>
+    <section class="card speakers" id="speakerBox" hidden aria-label="話者の名前">
+      <b style="font-size:14px">話者の名前を確認</b>
+      <div id="speakerSelects" style="display:flex;gap:18px;flex-wrap:wrap"></div>
+      <span class="small" style="margin-left:auto">名前の置き換えはこの画面の中だけで行います</span>
+    </section>
+    <div class="review" id="reviewBox" hidden>
+      <article class="card minutes" aria-label="議事録">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap"><b style="font-size:16px">議事録</b><span class="small">文字を直接クリックして直せます</span><button type="button" class="link-btn" id="btnResummary" style="margin-left:auto">要約を作り直す</button></div>
+        <div class="minutes-body" id="minutesBody" contenteditable="true" spellcheck="false"></div>
+      </article>
+      <section class="card transcript" aria-label="書き起こし">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:16px">書き起こし</b>
+          <input type="search" id="tSearch" aria-label="書き起こしを検索" placeholder="検索" class="input" style="margin-left:auto;width:180px;font-size:14px;padding:8px 12px"></div>
+        <div id="tLines"></div>
+      </section>
+    </div>
+  </main>
+</section>
 
-  function envInfo() {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    var mimes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-    return {
-      mic: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-      display: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
-      rec: window.MediaRecorder ? mimes.filter(function (x) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(x); }) : [],
-      speech: !!SR,
-      wakeLock: 'wakeLock' in navigator
-    };
-  }
+<!-- ============================================================ 5 保存完了 -->
+<section data-screen="saved" hidden>
+  <main class="saved">
+    <div class="card">
+      <span class="check-circle"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <h1 style="font-size:24px">Googleドキュメントに保存しました</h1>
+      <p style="margin:0;font-size:15px;color:var(--ink-2);word-break:break-all" id="savedName"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+        <a class="btn btn-primary" id="savedOpen" href="#" target="_blank" rel="noopener">ドキュメントを開く</a>
+        <button type="button" class="btn" id="btnCopyLink">リンクをコピー</button>
+      </div>
+      <dl class="kv"><div><dt>保存先</dt><dd id="savedFolder"></dd></div><div><dt>音声</dt><dd>保存していません</dd></div></dl>
+    </div>
+    <button type="button" class="link-btn" style="align-self:center;color:var(--blue);font-weight:700" data-go="home">ホームに戻る</button>
+  </main>
+</section>
 
-  if (!window.opener) {
-    $('status').textContent = 'この窓は、議事録アプリの画面の「録音窓を開く」ボタンから開いてください。';
-    $('status').className = 'ng';
-  } else {
-    // 元画面に「準備できた」とだけ知らせる（中身は送らない）。返事の hello で相手を確かめる
-    window.opener.postMessage({ type: 'ready' }, '*');
-  }
+<div class="toast" id="toast" role="status" hidden></div>
 
-  // ------------------------------------------------ 音量メーター
-  var meterStop = null;
-  function attachMeter(stream) {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var src = ctx.createMediaStreamSource(stream);
-    var an = ctx.createAnalyser(); an.fftSize = 512; src.connect(an);
-    var data = new Uint8Array(an.fftSize), alive = true, peak = 0;
-    (function tick() {
-      if (!alive) { $('meter').style.width = '0'; return; }
-      an.getByteTimeDomainData(data);
-      var sum = 0; for (var i = 0; i < data.length; i++) { var v = (data[i] - 128) / 128; sum += v * v; }
-      var level = Math.min(1, Math.sqrt(sum / data.length) * 4);
-      peak = Math.max(peak, level);
-      $('meter').style.width = Math.round(level * 100) + '%';
-      requestAnimationFrame(tick);
-    })();
-    return function () { alive = false; ctx.close(); return peak; };
-  }
-
-  // ------------------------------------------------ 字幕
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  var cap = null;
-  function startCaption() {
-    if (!SR || !opts.captions) return;
-    cap = { sr: new SR(), on: true, restarts: 0, finals: 0, errors: [], started: Date.now() };
-    var sr = cap.sr;
-    sr.lang = opts.lang === 'en' ? 'en-US' : 'ja-JP';
-    sr.continuous = true; sr.interimResults = true;
-    sr.onresult = function (e) {
-      var interim = '';
-      for (var i = e.resultIndex; i < e.results.length; i++) {
-        var t = e.results[i][0].transcript;
-        if (e.results[i].isFinal) {
-          var s = document.createElement('span'); s.textContent = t; $('capFinal').appendChild(s); cap.finals++;
-          send({ type: 'caption', text: t });
-        } else interim += t;
-      }
-      $('capInterim').textContent = interim;
-      $('capBox').scrollTop = $('capBox').scrollHeight;
-    };
-    sr.onerror = function (e) { cap.errors.push(e.error); if (e.error === 'not-allowed' || e.error === 'service-not-allowed') cap.on = false; };
-    sr.onend = function () { if (cap && cap.on) { cap.restarts++; setTimeout(function () { if (cap && cap.on) { try { sr.start(); } catch (err) {} } }, 300); } };
-    try { sr.start(); } catch (e) { report('窓 字幕', false, errText(e)); }
-  }
-  function stopCaption() {
-    if (!cap) return;
-    cap.on = false; try { cap.sr.stop(); } catch (e) {}
-    var sec = Math.round((Date.now() - cap.started) / 1000);
-    report('窓 字幕', cap.finals > 0, sec + '秒動作、確定 ' + cap.finals + '件、自動再開 ' + cap.restarts + '回' + (cap.errors.length ? '、エラー ' + cap.errors.join('/') : ''));
-    cap = null;
-  }
-
-  // ------------------------------------------------ 録音
-  var rec = null, wakeLock = null;
-  function pickMime() {
-    var c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
-    for (var i = 0; i < c.length; i++) { if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c[i])) return c[i]; }
-    return '';
-  }
-  function stopAll(list) { list.forEach(function (s) { if (s.getTracks) s.getTracks().forEach(function (t) { t.stop(); }); else if (s.close) s.close(); }); }
-
-  $('btnStart').onclick = function () {
-    var source = $('source').value, extra = [];
-    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (mic) {
-      extra.push(mic);
-      report('窓 マイク', true, '取得できた（' + ((mic.getAudioTracks()[0] || {}).label || '名称なし') + '）');
-      if (source !== 'mix') return mic;
-      return navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(function (disp) {
-        extra.push(disp);
-        if (!disp.getAudioTracks().length) throw new Error('タブの音声が共有されていません（共有画面で「タブの音声も共有する」をオンに）');
-        report('窓 タブ音声', true, '共有できた（' + disp.getAudioTracks()[0].label + '）');
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var dest = ctx.createMediaStreamDestination();
-        ctx.createMediaStreamSource(mic).connect(dest);
-        ctx.createMediaStreamSource(new MediaStream(disp.getAudioTracks())).connect(dest);
-        extra.push({ close: function () { ctx.close(); } });
-        return dest.stream;
-      });
-    }).then(function (stream) {
-      rec = { stream: stream, extra: extra, mime: pickMime(), seg: 0, startedAt: Date.now(), segStart: 0, recorder: null, sent: 0 };
-      meterStop = attachMeter(stream);
-      startSegment();
-      rec.timer = setInterval(function () {
-        var el = Math.round((Date.now() - rec.startedAt) / 1000);
-        $('clock').textContent = '録音中 ' + Math.floor(el / 60) + '分' + (el % 60) + '秒';
-        if (Date.now() - rec.segStart >= opts.segMin * 60000) rotateSegment();
-      }, 1000);
-      if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {});
-      $('capFinal').innerHTML = ''; startCaption();
-      $('btnStart').disabled = true; $('btnStop').disabled = false; $('source').disabled = true;
-      send({ type: 'started', source: source, mime: rec.mime });
-      report('窓 録音開始', true, (source === 'mix' ? 'マイク＋タブ' : 'マイクのみ') + '、形式 ' + (rec.mime || '既定'));
-    }).catch(function (e) {
-      stopAll(extra);
-      report('窓 録音開始', false, errText(e));
-    });
-  };
-
-  function startSegment() {
-    var idx = rec.seg, offsetSec = Math.round((Date.now() - rec.startedAt) / 1000), chunks = [];
-    var r = rec.mime ? new MediaRecorder(rec.stream, { mimeType: rec.mime, audioBitsPerSecond: 32000 }) : new MediaRecorder(rec.stream);
-    r.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
-    r.onstop = function () {
-      var type = r.mimeType || rec.mime || 'audio/webm';
-      new Blob(chunks, { type: type }).arrayBuffer().then(function (buf) {
-        var size = buf.byteLength;
-        // 音声データは受け渡し（transfer）で元画面へ移す。この窓には残さない
-        if (send({ type: 'segment', idx: idx, offsetSec: offsetSec, mime: type, buf: buf }, [buf])) {
-          $('segInfo').textContent = '区間' + (idx + 1) + 'を元の画面へ渡しました（' + (size / 1048576).toFixed(2) + 'MB）';
-          localLog('区間' + (idx + 1) + ' 受け渡し ' + (size / 1048576).toFixed(2) + 'MB', true);
-        }
-      });
-    };
-    r.start(5000);
-    rec.recorder = r; rec.segStart = Date.now();
-  }
-  function rotateSegment() { rec.recorder.stop(); rec.seg++; startSegment(); }
-
-  function stopRec() {
-    if (!rec) return;
-    clearInterval(rec.timer);
-    rec.recorder.stop();
-    if (meterStop) meterStop();
-    stopAll(rec.extra);
-    if (wakeLock) { wakeLock.release().catch(function () {}); wakeLock = null; }
-    stopCaption();
-    report('窓 録音終了', true, '合計 ' + Math.round((Date.now() - rec.startedAt) / 1000) + '秒、' + (rec.seg + 1) + '区間');
-    send({ type: 'stopped', segments: rec.seg + 1 });
-    $('clock').textContent = '録音を終了しました。この窓は閉じて構いません。';
-    $('btnStop').disabled = true; $('btnStart').disabled = false; $('source').disabled = false;
-    rec = null;
-  }
-  $('btnStop').onclick = stopRec;
-
-  window.addEventListener('beforeunload', function (e) { if (rec) { e.preventDefault(); e.returnValue = ''; } });
-})();
-</script>
+<script src="config.js?v=1.0.0"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="app.js?v=1.0.0"></script>
 </body>
 </html>
