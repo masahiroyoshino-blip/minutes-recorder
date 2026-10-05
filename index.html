@@ -128,12 +128,8 @@
           <button type="button" class="radio-card" data-src="mic" role="radio" aria-checked="true" id="srcMic"><span class="dot"></span><span><b>マイクのみ</b><span class="h">対面の会議や、スピーカーで相手の声を流しているとき。</span></span></button>
           <p class="small" id="mixUnavailable" hidden style="margin:0">この端末では会議の音声を取り込めないため、マイクのみで録音します。</p>
         </div>
-        <div class="card">
-          <b style="font-size:14px">録音の前に</b>
-          <span class="note" style="line-height:1.7"><button type="button" class="text-link" id="btnTerms">利用規約</button>を確認し、この会議が条件を満たしていれば同意してください。</span>
-          <label class="check"><input type="checkbox" class="consent" id="consentTerms">利用規約に同意する</label>
-        </div>
-        <button type="button" class="btn btn-primary btn-lg" id="btnStart" disabled>利用規約に同意すると開始できます</button>
+        <button type="button" class="btn btn-primary btn-lg" id="btnStart"><span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始</button>
+        <p class="small" style="margin:0;line-height:1.7">録音することを参加者に伝えてから始めましょう。（<button type="button" class="text-link" data-terms>利用規約</button>）</p>
         <div id="startError" class="error-box" hidden></div>
       </section>
     </div>
@@ -273,6 +269,11 @@
         <label class="check"><input type="checkbox" id="setResume">録音をこのPCに一時保存し、途中で閉じても続きから仕上げられるようにする</label>
         <label class="field" style="font-weight:400">ホームの「最近の議事録」の表示件数<select class="input" id="setRecent"><option value="3">3件</option><option value="6">6件</option><option value="9">9件</option><option value="0">表示しない（検索だけ使う）</option></select></label>
       </section>
+      <section class="card my-card" aria-label="利用規約">
+        <b>利用規約</b>
+        <span class="note">録音する会議の条件（録音の告知・未成年の不参加・個人情報や機密を扱わない など）です。</span>
+        <div><button type="button" class="btn btn-outline" data-terms>利用規約を見る</button></div>
+      </section>
       <section class="card my-card" aria-label="管理者への連絡">
         <b>不具合・要望を送る</b>
         <span class="note">気づいたこと・困ったことを管理者に送れます（βテスト期間）。</span>
@@ -296,7 +297,7 @@
     </div>
 
     <section class="card help-card">
-      <h2>使う前に（ルール）</h2>
+      <h2>使う前に（ルール）　<button type="button" class="text-link" data-terms style="font-size:14px">利用規約の全文</button></h2>
       <ul>
         <li>個人情報・機密情報を扱う会議では使いません。</li>
         <li>未成年が参加する打合せは Google Meet で行い、このアプリは使いません。</li>
@@ -309,7 +310,7 @@
       <h2>基本の流れ</h2>
       <ol>
         <li><b>ホーム</b>で今日の予定の「この予定で録音」を押す（予定がなければ「今すぐ録音」）。タイトル・日時・参加者が自動で入ります。</li>
-        <li><b>準備</b>で内容を確かめ、「利用規約」を確認して「同意する」にチェックし「録音を開始」。</li>
+        <li><b>準備</b>で内容を確かめ、参加者に録音を伝えてから「録音を開始」。</li>
         <li><b>録音</b>中は大事な場面で「ここ重要」。気づいたことは「自分用メモ」へ（AIには送りません）。</li>
         <li>「終了して仕上げへ」を押すと、AIが書き起こしと要約を作ります（数十秒〜数分）。</li>
         <li><b>仕上げ</b>で「話者A」などに名前を当て、議事録の文字を直接クリックして直します。</li>
@@ -387,7 +388,7 @@
 <dialog id="termsDlg" class="dlg">
   <div class="dlg-in terms">
     <b style="font-size:18px">議事録アプリ 利用規約</b>
-    <span class="small">録音のたびに、この会議が次の条件をすべて満たしているか確認してください。</span>
+    <span class="small">このアプリで録音する会議は、次の条件をすべて満たしていることが前提です。</span>
     <ol>
       <li><b>録音の告知</b>：参加者全員に「録音して議事録を作る」ことを伝えている。</li>
       <li><b>未成年の不参加</b>：未成年が参加していない（未成年が参加する打合せは Google Meet で行う）。</li>
@@ -398,8 +399,7 @@
     </ol>
     <span class="small">βテスト期間中のルールです。内容は管理者が見直すことがあります。</span>
     <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-      <button type="button" class="btn" id="termsClose">閉じる</button>
-      <button type="button" class="btn btn-primary" id="termsAgree">同意して閉じる</button>
+      <button type="button" class="btn btn-primary" id="termsClose">閉じる</button>
     </div>
   </div>
 </dialog>
@@ -413,6 +413,6 @@
 
 <script src="config.js?v=1.1.0"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js?v=1.4.0"></script>
+<script src="app.js?v=1.4.1"></script>
 </body>
 </html>

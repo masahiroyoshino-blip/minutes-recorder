@@ -14,7 +14,7 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.4.0';
+  var VERSION = '1.4.1';
   var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
@@ -320,7 +320,6 @@
     setSource(defaultSource(prep.format));
     $('#fLang').value = S.settings.lang || 'ja';
     $('#prepHint').textContent = ev ? 'カレンダーの予定から自動で入力しました。違うところだけ直してください。' : 'タイトルと参加者を入れてください。';
-    $$('.consent').forEach(function (c) { c.checked = false; });
     $('#mixUnavailable').hidden = canMix; $('#srcMix').hidden = !canMix;
     $('#startError').hidden = true;
     renderChips(); updateStart();
@@ -360,17 +359,12 @@
   $('#chipInput').addEventListener('blur', addChipFromInput);
   $('#chips').addEventListener('click', function (e) { if (e.target === this) $('#chipInput').focus(); });
 
-  function updateStart() {
-    var ok = $$('.consent').every(function (c) { return c.checked; });
-    var b = $('#btnStart'); b.disabled = !ok;
-    b.innerHTML = ok ? '<span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始' : '利用規約に同意すると開始できます';
-  }
-  $$('.consent').forEach(function (c) { c.addEventListener('change', updateStart); });
+  // v1.4.1：録音前の同意チェックは廃止（全員が周知済みのため）。開始ボタンは常に押せる。利用規約はマイページ・使い方・準備画面のリンクから見られる
+  function updateStart() { var b = $('#btnStart'); b.disabled = false; b.innerHTML = '<span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始'; }
   // 利用規約（サブウィンドウ）
   function closeTerms() { var d = $('#termsDlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
-  $('#btnTerms').addEventListener('click', function () { var d = $('#termsDlg'); if (d.showModal) d.showModal(); else d.setAttribute('open', ''); });
+  $$('[data-terms]').forEach(function (b) { b.addEventListener('click', function () { var d = $('#termsDlg'); if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }); });
   $('#termsClose').addEventListener('click', closeTerms);
-  $('#termsAgree').addEventListener('click', function () { $('#consentTerms').checked = true; updateStart(); closeTerms(); });
   $('#termsDlg').addEventListener('click', function (e) { if (e.target === this) closeTerms(); });   // 外側を押したら閉じる
   $('#btnStart').addEventListener('click', function () { addChipFromInput(); startRecording(); });
 
