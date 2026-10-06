@@ -7,412 +7,389 @@
 <meta name="theme-color" content="#FFFFFF">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="議事録">
-<title>議事録アプリ｜RePlayce</title>
+<meta name="apple-mobile-web-app-title" content="領収書">
+<title>領収書アプリ｜RePlayce</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1.4.0">
+<link rel="stylesheet" href="style.css?v=1.2.3">
 </head>
 <body>
 
 <!-- ============================================================ 0 ログイン -->
-<section data-screen="login">
-  <div class="login-wrap">
-    <div class="login-col">
-      <div class="card login-card">
-        <img class="logo" src="replayce-logo.png" alt="RePlayce">
-        <div class="page-title" style="justify-content:center"><span class="mark4"><span></span><span></span><span></span><span></span></span><h1>議事録アプリ</h1></div>
-        <p style="margin:0;font-size:15px;line-height:1.8;color:var(--ink-2)">Zoom・Teams・対面の会議を録音して、<br>書き起こしと要約をGoogleドキュメントに残します。</p>
-        <button id="btnLogin" class="btn btn-primary btn-lg" type="button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-          Googleアカウントでログイン
-        </button>
-        <p class="note" style="margin:0">会社のアカウント（@<span id="domainLabel">replayce.co.jp</span>）を選んでください</p>
-        <div id="loginError" class="error-box" hidden></div>
-      </div>
-      <div id="inAppWarn" class="notice" hidden>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A6A00" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16h.01"/></svg>
-        <span><b>アプリの中のブラウザで開いています。</b>このままではGoogleのログインができません。右上のメニューから「ブラウザで開く」を選ぶか、URLをコピーしてChrome（iPhoneはSafari）に貼り付けてください。</span>
-      </div>
-      <div class="card login-rules">
-        <b style="font-size:14px">使う前に</b>
-        <ul>
-          <li>個人情報・機密情報を扱う会議では使いません</li>
-          <li>未成年が参加する打合せはGoogle Meetで行います</li>
-          <li>議事録は社内の叩き台です。社外に出すときは人が確認して書き直します</li>
-        </ul>
-      </div>
+<section data-screen="login" class="screen">
+  <div class="login">
+    <img class="logo-lg" src="replayce-logo.png" alt="RePlayce">
+    <div class="title-row"><span class="mark4"><span></span><span></span><span></span><span></span></span>
+      <div><h1>領収書アプリ</h1><p class="lead">撮るだけで、読み取り・保存・申請文まで。</p></div>
+    </div>
+    <ol class="steps3">
+      <li><span>1</span>領収書を撮る</li>
+      <li><span>2</span>読み取った内容を確かめる</li>
+      <li><span>3</span>申請文をSlackに貼る</li>
+    </ol>
+    <div class="login-bottom">
+      <button id="btnLogin" class="btn btn-primary btn-lg" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        Googleでログイン
+      </button>
+      <p class="note center">会社のGoogleアカウント（@<span id="domainLabel">replayce.co.jp</span>）で入ってください</p>
+      <button type="button" class="link-btn" id="btnLoginRedirect">ログイン画面が真っ黒・開かないときはこちら</button>
+      <div id="inAppWarn" class="notice" hidden>アプリの中のブラウザで開いています。このままではログインできません。メニューから「ブラウザで開く」を選ぶか、URLをSafari（AndroidとPCはChrome）に貼ってください。</div>
+      <div id="loginError" class="error-box" hidden></div>
+      <p class="safe">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        AI（Gemini）に送るのは領収書の画像だけです。保存先はあなたのGoogleドライブです。
+      </p>
     </div>
   </div>
 </section>
 
-<!-- ============================================================ 共通ヘッダー（ログイン後） -->
+<!-- ============================================================ 共通ヘッダー -->
 <header class="app-header" id="appHeader" hidden>
-  <img class="logo" src="replayce-logo.png" alt="RePlayce">
-  <span class="app-name">議事録</span>
-  <nav id="mainNav"><a href="#" id="navHome" class="active">ホーム</a><a href="#" id="navMy">マイページ</a><a href="#" id="navHelp">使い方</a></nav>
-  <ol class="stepper" id="stepper" hidden><li data-step="1">1 準備</li><li data-step="2">2 録音</li><li data-step="3">3 仕上げ</li></ol>
-  <span class="user" id="userBox"><span class="name" id="userName"></span><span class="avatar" id="userInitial">・</span><button type="button" class="link-btn desktop-only" id="btnLogout">ログアウト</button></span>
-  <button type="button" class="menu-btn mobile-only" id="btnMenu" aria-label="メニュー" aria-expanded="false" aria-controls="menuPanel"><span></span><span></span><span></span></button>
+  <a href="#" class="brand" id="brandHome" aria-label="ホームへ"><img src="replayce-logo.png" alt="RePlayce"><span>領収書</span></a>
+  <ol class="stepper" id="stepper" hidden><li data-step="1">撮る</li><li data-step="2">確認</li><li data-step="3">申請</li></ol>
+  <button type="button" class="icon-btn" id="btnMenu" aria-label="メニュー" aria-expanded="false" aria-controls="menuPanel">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+  </button>
   <div class="menu-panel" id="menuPanel" hidden>
-    <div class="menu-user"><span class="avatar" id="menuInitial">・</span><span><b id="menuName"></b><span class="small" id="menuEmail" style="display:block"></span></span></div>
+    <div class="menu-user"><span class="avatar" id="menuInitial">?</span><div><b id="menuName"></b><div class="small" id="menuEmail"></div></div></div>
     <button type="button" data-nav="home">ホーム</button>
-    <button type="button" data-nav="my">マイページ</button>
+    <button type="button" data-nav="batch">まとめて申請</button>
+    <button type="button" data-nav="mypage">マイページ</button>
     <button type="button" data-nav="help">使い方</button>
-    <button type="button" data-nav="logout" class="menu-logout">ログアウト</button>
+    <button type="button" data-nav="logout">ログアウト</button>
+    <div class="small menu-ver">版 <span id="verLabel"></span></div>
   </div>
 </header>
 
 <!-- ============================================================ 1 ホーム -->
-<section data-screen="home" hidden>
-  <main class="page">
-    <div class="home-head">
-      <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
-        <div><div class="sub" id="todayLabel"></div><h1>今日の打合せ</h1></div>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn btn-primary" id="btnRecordNow">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
-          今すぐ録音
-        </button>
-      </div>
+<section data-screen="home" class="screen" hidden>
+  <main class="wrap">
+    <div class="title-row">
+      <span class="mark4"><span></span><span></span><span></span><span></span></span>
+      <div><div class="sub" id="todayLabel"></div><h1>未申請の立替</h1></div>
     </div>
-    <div id="resumeBox" class="notice" hidden></div>
-    <section class="card" aria-label="今日の予定" id="eventsCard">
-      <div id="events"><div class="empty"><span class="spin"></span> 予定を読み込んでいます…</div></div>
-      <div class="list-foot">Googleカレンダーの今日の予定です。選ぶとタイトル・日時・参加者が録音の準備画面に自動で入ります。</div>
+
+    <section class="card setup" id="folderSetup" hidden>
+      <h2>はじめに：保存先フォルダを選んでください</h2>
+      <p class="note">毎月の「○年○月稼働」フォルダが並んでいるフォルダを選びます。領収書はその中の月のフォルダに、台帳（立替金精算台帳）はこのフォルダの直下に作られます。</p>
+      <button type="button" class="btn btn-primary" data-action="pick-folder">保存先フォルダを選ぶ</button>
     </section>
-    <section aria-label="最近の議事録" id="recentSection" style="display:flex;flex-direction:column;gap:14px">
-      <div class="recent-head">
-        <h2>最近の議事録</h2>
-        <form class="search" id="searchForm" role="search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5A5A5A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-          <input type="search" id="searchInput" aria-label="議事録を検索" placeholder="タイトル・本文で検索">
-        </form>
+
+    <section class="card summary" aria-label="未申請のまとめ">
+      <div class="sum-row"><span class="big"><span id="sumCount">-</span><small>件</small></span><span class="sum-total">合計 <b id="sumTotal">-</b> 円</span></div>
+      <p class="notice" id="sumOld" hidden></p>
+      <p class="note" id="sumEmpty" hidden>未申請の立替はありません。</p>
+      <button type="button" class="btn btn-outline btn-md" id="btnToBatch" data-action="batch" hidden>まとめて申請する</button>
+    </section>
+
+    <section aria-label="月ごとの登録" class="recent">
+      <div class="sec-head"><h2>月ごとの登録</h2><span class="small" id="recentNote"></span></div>
+      <div class="month-nav">
+        <button type="button" class="month-btn" id="monthPrev" aria-label="前の月">‹</button>
+        <span class="month-label" id="monthLabel" aria-live="polite">-</span>
+        <button type="button" class="month-btn" id="monthNext" aria-label="次の月">›</button>
+        <span class="small month-sum" id="monthSum"></span>
       </div>
-      <div class="recent-grid" id="recent"></div>
-      <div style="display:flex;justify-content:center"><button type="button" class="btn btn-outline" id="btnMoreRecent" hidden>もっと見る</button></div>
+      <div class="card list" id="recentList"></div>
+      <p class="note" id="recentEmpty" hidden>まだ登録がありません。下のボタンから領収書を撮ってみましょう。</p>
     </section>
-    <p class="trust">
+  </main>
+  <div class="bottom-bar">
+    <button type="button" class="btn btn-primary btn-shoot" data-action="shoot">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      領収書を撮る
+    </button>
+    <div class="link-row">
+      <button type="button" class="link-btn" data-action="pick-file">写真・PDFを選ぶ</button>
+      <button type="button" class="link-btn" data-action="pick-multi">まとめて読み取る（5枚まで）</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ 2 読み取り・確認 -->
+<section data-screen="confirm" class="screen" hidden>
+  <main class="wrap">
+    <section class="photo-row" aria-label="撮った領収書">
+      <button type="button" class="thumb" id="thumbBtn" aria-label="写真を大きく見る"><img id="thumbImg" alt=""><span id="thumbPdf" class="pdf-badge" hidden>PDF</span></button>
+      <div class="photo-side">
+        <div id="readStatus" class="read-status"></div>
+        <div class="row-btns">
+          <button type="button" class="btn btn-sm" data-action="reshoot">撮り直す</button>
+          <button type="button" class="btn btn-sm" data-action="pick-file">写真・PDFを選び直す</button>
+          <button type="button" class="btn btn-sm" id="btnRetryRead" hidden>もう一度読み取る</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="notice dup" id="dupWarn" hidden></div>
+
+    <section class="card form" aria-label="読み取った内容">
+      <div class="grid2">
+        <label class="field">立替日<input class="input" type="date" id="fDate"></label>
+        <label class="field">金額（税込）<span class="yen"><input class="input num" type="text" inputmode="numeric" id="fAmount" autocomplete="off">円</span></label>
+      </div>
+      <label class="field">利用会社<input class="input" type="text" id="fVendor" autocomplete="off"><span class="hint" id="vendorHint">「株式会社」などを付けた正式社名にします（例：株式会社ファミリーマート）</span></label>
+      <label class="field">用途<input class="input" type="text" id="fPurpose" autocomplete="off" placeholder="例：宿泊費用"></label>
+      <div class="field">
+        <label for="fProject">対象案件</label>
+        <input class="input" type="text" id="fProject" autocomplete="off" placeholder="候補から選ぶか、入力してください">
+        <span class="hint" id="candNote"></span>
+        <div class="chips" id="candList"></div>
+      </div>
+      <details class="more">
+        <summary>支払方法・インボイス番号</summary>
+        <div class="grid2">
+          <label class="field">支払方法<select class="input" id="fPay"><option>現金</option><option>クレジットカード</option><option>交通系IC</option><option>QR決済</option><option>電子マネー</option><option>その他</option><option>不明</option></select></label>
+          <label class="field">インボイス番号<input class="input" type="text" id="fInvoice" autocomplete="off" placeholder="T＋13桁"></label>
+        </div>
+      </details>
+    </section>
+
+    <section class="preview" aria-label="保存のされ方">
+      <span class="small">保存されるファイル名</span>
+      <b id="pvName">—</b>
+      <span class="small">保存先</span>
+      <span id="pvPath">—</span>
+    </section>
+  </main>
+  <div class="bottom-bar">
+    <p class="note center" id="saveNote"></p>
+    <button type="button" class="btn btn-primary btn-lg" id="btnMultiBack" hidden>一覧に戻る</button>
+    <button type="button" class="btn btn-primary btn-lg" id="btnSave" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      保存する
+    </button>
+  </div>
+</section>
+
+<!-- ============================================================ 2b まとめて読み取り -->
+<section data-screen="multi" class="screen" hidden>
+  <main class="wrap">
+    <div class="sec-head"><h1 class="h1s">まとめて読み取り</h1><span class="small" id="mCount"></span></div>
+    <p class="note" id="mLead">読み取りが終わった領収書から、タップして内容を確かめられます。黄色の印は確認が必要なものです。</p>
+
+    <section class="card pad col" id="mBulk" aria-label="対象案件をまとめて入れる">
+      <h2 class="h2s">対象案件をまとめて入れる</h2>
+      <div class="row-line"><input class="input grow" type="text" id="mProject" autocomplete="off" placeholder="候補から選ぶか、入力してください"><button type="button" class="btn btn-sm btn-outline" id="btnMApply">全部に入れる</button></div>
+      <div class="chips" id="mCands"></div>
+      <span class="hint">1枚ずつ違う案件のときは、下の一覧からタップして直してください。</span>
+    </section>
+
+    <div class="card list" id="mList"></div>
+
+    <section class="card pad col" id="mDone" hidden>
+      <h2 class="h2s" id="mDoneTitle"></h2>
+      <p class="note">台帳に「未申請」で記録しました。続けて「まとめて申請」で、まとめた申請文を作れます。</p>
+    </section>
+  </main>
+  <div class="bottom-bar">
+    <p class="note center" id="mNote"></p>
+    <button type="button" class="btn btn-primary btn-lg" id="btnMSave" disabled>まとめて保存</button>
+    <button type="button" class="btn btn-primary btn-lg" id="btnMToBatch" data-action="batch" hidden>まとめて申請へ進む</button>
+    <button type="button" class="link-btn" id="btnMHome">ホームへ戻る</button>
+  </div>
+</section>
+
+<!-- ============================================================ 3 保存完了・申請 -->
+<section data-screen="result" class="screen" hidden>
+  <main class="wrap">
+    <section class="card saved-card" id="savedCard">
+      <span class="ok-dot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+      <div class="saved-text">
+        <h1 id="savedTitle">保存して、台帳に記録しました</h1>
+        <span class="small break" id="savedName"></span>
+        <span class="small break" id="savedPath"></span>
+        <div class="row-links"><a href="#" id="linkFile" target="_blank" rel="noopener">領収書を開く</a><a href="#" id="linkLedger" target="_blank" rel="noopener">台帳を開く</a></div>
+      </div>
+    </section>
+
+    <section class="card claim" aria-label="申請文">
+      <div class="sec-head"><h2>申請文</h2><span class="pill" id="statusPill"></span></div>
+      <div class="claim-box" id="claimBox"></div>
+
+      <div id="stepCopy" class="col">
+        <button type="button" class="btn btn-primary btn-lg" data-action="copy-open">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>
+          コピーしてSlackを開く
+        </button>
+        <button type="button" class="btn btn-outline btn-md" data-action="later">あとでまとめて申請する</button>
+      </div>
+      <div id="stepMark" class="col" hidden>
+        <p class="info">コピーしました。立替精算チャンネルの自分のスレッドに貼って送信したら、下のボタンを押してください。</p>
+        <button type="button" class="btn btn-primary btn-lg" data-action="mark">申請済みにする</button>
+        <button type="button" class="btn btn-md" data-action="copy-open">もう一度コピーしてSlackを開く</button>
+      </div>
+      <div id="stepDone" class="done-row" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        <span id="doneText">台帳を「申請済み」にしました</span>
+        <button type="button" class="text-btn" data-action="undo">取り消す</button>
+      </div>
+    </section>
+
+    <details class="card fb" id="fbCard">
+      <summary>試行の感想を送る（任意・10秒）</summary>
+      <div class="col">
+        <div class="field"><span>使い心地</span>
+          <div class="stars" id="fbStars" role="radiogroup" aria-label="使い心地">
+            <button type="button" role="radio" aria-checked="false" data-v="1">1</button><button type="button" role="radio" aria-checked="false" data-v="2">2</button><button type="button" role="radio" aria-checked="false" data-v="3">3</button><button type="button" role="radio" aria-checked="false" data-v="4">4</button><button type="button" role="radio" aria-checked="false" data-v="5">5</button>
+          </div>
+          <span class="hint">1＝使いにくい ／ 5＝とても使いやすい</span>
+        </div>
+        <label class="field">これまでのやり方と比べて、何分くらい減りましたか<input class="input" type="number" inputmode="numeric" id="fbMin" placeholder="例：3"></label>
+        <label class="field">ひとこと（直してほしいところなど）<textarea class="input" id="fbText" rows="3"></textarea></label>
+        <p class="hint">送られるのは、ここに書いた内容と、読み取りがAIのままだったか等の利用状況だけです。領収書の中身は送りません。</p>
+        <button type="button" class="btn btn-primary btn-md" id="btnFb">感想を送る</button>
+      </div>
+    </details>
+  </main>
+  <div class="bottom-bar row wrap2">
+    <button type="button" class="btn btn-md grow" data-action="shoot">続けて撮る</button>
+    <button type="button" class="btn btn-md grow" data-action="pick-file">写真・PDFを選ぶ</button>
+    <button type="button" class="link-btn full" data-action="home">ホームへ戻る</button>
+  </div>
+</section>
+
+<!-- ============================================================ 4 まとめて申請 -->
+<section data-screen="batch" class="screen" hidden>
+  <main class="wrap">
+    <div class="title-row"><span class="mark4"><span></span><span></span><span></span><span></span></span><div><div class="sub">未申請をまとめて1つの申請文にします</div><h1>まとめて申請</h1></div></div>
+    <div class="sum-row"><span class="sub">選んだもの</span><span class="big"><span id="bCount">0</span><small>件</small></span><span class="sum-total" style="margin-left:auto">合計 <b id="bTotal">0</b> 円</span></div>
+    <p class="notice" id="bOld" hidden></p>
+    <section class="card list" id="bList" aria-label="未申請の一覧"></section>
+    <p class="note" id="bEmpty" hidden>未申請の立替はありません。</p>
+    <section class="card claim" id="bPreviewCard" aria-label="まとめた申請文">
+      <h2 class="h2s">まとめた申請文（日付の古い順）</h2>
+      <div class="claim-box" id="bPreview"></div>
+    </section>
+  </main>
+  <div class="bottom-bar">
+    <button type="button" class="btn btn-primary btn-lg" id="btnBatchCopy">コピーしてSlackを開く</button>
+    <button type="button" class="btn btn-primary btn-lg" id="btnBatchMark" hidden>選んだ<span id="bCount2">0</span>件を申請済みにする</button>
+    <button type="button" class="link-btn" id="btnBatchRecopy" hidden>もう一度コピーしてSlackを開く</button>
+  </div>
+</section>
+
+<!-- ============================================================ 5 マイページ -->
+<section data-screen="mypage" class="screen" hidden>
+  <main class="wrap">
+    <div class="me-row"><span class="avatar" id="myInitial">?</span><div><b id="myName"></b><div class="small" id="myEmail"></div></div></div>
+
+    <section class="card pad col" aria-label="保存のしかた">
+      <h2 class="h2s">保存のしかた</h2>
+      <div class="col tight"><span class="small">保存先フォルダ（「○年○月稼働」フォルダが並んでいる場所）</span>
+        <div class="row-line"><b id="myFolder" class="grow break">未設定</b><button type="button" class="btn btn-sm btn-outline" data-action="pick-folder">選び直す</button></div>
+      </div>
+      <fieldset class="radios"><legend class="small">フォルダの分け方</legend>
+        <label><input type="radio" name="split" value="standard"> 月の稼働フォルダ ＋「経費領収書：日付_案件名」フォルダ（標準）</label>
+        <label><input type="radio" name="split" value="month"> 月の稼働フォルダだけ</label>
+      </fieldset>
+      <button type="button" class="row-link" data-action="ledger">台帳（立替金精算台帳）を開く<span aria-hidden="true">›</span></button>
+    </section>
+
+    <section class="card pad col" aria-label="よく使う案件名">
+      <h2 class="h2s">よく使う案件名</h2>
+      <span class="small">確認画面の候補にいつも出ます（最大10件）</span>
+      <div class="chips" id="favList"></div>
+      <div class="row-line"><input class="input grow" type="text" id="favInput" placeholder="例：横須賀市：定例会" autocomplete="off"><button type="button" class="btn btn-sm" id="btnFavAdd">追加</button></div>
+    </section>
+
+    <section class="card pad col" aria-label="困ったとき">
+      <button type="button" class="row-link" data-action="help">使い方<span aria-hidden="true">›</span></button>
+      <button type="button" class="row-link" data-action="report">不具合・要望を送る（管理者に届きます）<span aria-hidden="true">›</span></button>
+      <span class="small">版 <span id="verLabel2"></span></span>
+    </section>
+    <button type="button" class="link-btn" data-action="logout">ログアウト</button>
+  </main>
+</section>
+
+<!-- ============================================================ 6 使い方 -->
+<section data-screen="help" class="screen" hidden>
+  <main class="wrap help">
+    <div class="title-row"><span class="mark4"><span></span><span></span><span></span><span></span></span><div><div class="sub">はじめての方へ</div><h1>使い方</h1></div></div>
+    <section class="card pad col">
+      <h2 class="h2s">基本の流れ（1分）</h2>
+      <ol class="steps3">
+        <li><span>1</span>ホームの「領収書を撮る」で撮影（メールのPDFは「写真・PDFを選ぶ」）</li>
+        <li><span>2</span>読み取った内容を確かめて、黄色の欄を直し、対象案件を選んで「保存する」</li>
+        <li><span>3</span>「コピーしてSlackを開く」→ 立替精算チャンネルの自分のスレッドに貼って送信 →「申請済みにする」</li>
+      </ol>
+    </section>
+    <section class="card pad col">
+      <h2 class="h2s">うまく読み取るコツ</h2>
+      <ul class="tips">
+        <li>明るい場所で、領収書1枚だけを画面いっぱいに撮る</li>
+        <li>2枚以上を一度に撮らない（いちばん大きい1枚しか読みません）</li>
+        <li>出張などで何枚もあるときは、先にカメラで1枚ずつ撮っておき、ホームの「まとめて読み取る」で写真を選ぶ（5枚まで。対象案件はまとめて入れられます）</li>
+        <li>長いレシートは、合計金額と日付が入るように撮る</li>
+        <li>読めなかった欄は黄色になります。推測では埋めないので、写真を見て入れてください</li>
+      </ul>
+    </section>
+    <section class="card pad col">
+      <h2 class="h2s">よくある質問</h2>
+      <dl class="faq">
+        <dt>あとでまとめて出したい</dt><dd>保存後の画面で「あとでまとめて申請する」を押します。ホームの「まとめて申請する」から、未申請を選んで1つの申請文にできます。経理のルールは「月末まで溜めず、その都度」なので、溜めすぎに注意してください。</dd>
+        <dt>「申請済み」を間違えて押した</dt><dd>保存後の画面の「取り消す」か、台帳（スプレッドシート）の「申請状態」のプルダウンで「未申請」に戻せます。</dd>
+        <dt>「同じ立替日・金額の申請が既にあります」と出た</dt><dd>同じ領収書を2回送っていないか確かめてください。別の支払いなら、そのまま保存できます。</dd>
+        <dt>「AIが混み合っています」と出た</dt><dd>1分後・2分後に自動でやり直します。待たずに手で入れて保存しても構いません。</dd>
+        <dt>保存先を変えたい</dt><dd>マイページの「保存先フォルダ」の「選び直す」から変えられます。</dd>
+        <dt>おかしな動きをした</dt><dd>マイページの「不具合・要望を送る」から管理者に送ってください。領収書の中身は送られません。</dd>
+      </dl>
+    </section>
+    <p class="safe">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
-      AI（Gemini）に送るのは音声と参加人数だけです。参加者の名前は送りません。
+      AI（Gemini）に送るのは領収書の画像だけです。氏名やメールアドレスは送りません。保存先はあなたのGoogleドライブです。
     </p>
   </main>
 </section>
 
-<!-- ============================================================ 2 録音の準備 -->
-<section data-screen="prepare" hidden>
-  <main class="page">
-    <div><button type="button" class="link-btn" data-go="home"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>ホームに戻る</button></div>
-    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
-      <div><h1>録音の準備</h1><div class="sub" id="prepHint">内容を確認してください。</div></div>
-    </div>
-    <div class="prep-grid">
-      <section class="card prep-main" aria-label="打合せ情報">
-        <label class="field">打合せタイトル<input class="input" id="fTitle" type="text" placeholder="例：営業部 定例ミーティング" maxlength="80"></label>
-        <label class="field">日時<input class="input" id="fWhen" type="text" maxlength="60"></label>
-        <div class="field"><span>形式</span><div class="seg" id="fFormat" role="group" aria-label="形式">
-          <button type="button" data-v="Zoom" aria-pressed="false">Zoom</button><button type="button" data-v="Teams" aria-pressed="false">Teams</button><button type="button" data-v="Google Meet" aria-pressed="false">Google Meet</button><button type="button" data-v="対面" aria-pressed="true">対面</button><button type="button" data-v="その他" aria-pressed="false">その他</button>
-        </div></div>
-        <div class="field"><span>参加者 <span style="font-weight:400;color:var(--sub)" id="peopleCount"></span></span>
-          <div class="chips-input" id="chips"><input type="text" id="chipInput" aria-label="参加者を追加" placeholder="名前を入れてEnter"></div>
-          <span class="note" style="font-weight:400">名前は議事録の出席者欄と、話者の名前当てにだけ使います。AIには人数だけを伝えます。</span>
-        </div>
-        <label class="field" style="max-width:240px">言語<select class="input" id="fLang"><option value="ja">日本語</option><option value="en">英語</option></select></label>
-      </section>
-      <section class="prep-side" aria-label="録音の設定">
-        <div class="card" role="radiogroup" aria-label="音の取り方">
-          <b style="font-size:14px">音の取り方</b>
-          <button type="button" class="radio-card" data-src="mix" role="radio" aria-checked="false" id="srcMix"><span class="dot"></span><span><b>マイク＋会議の音声（おすすめ）</b><span class="h">共有画面で会議のタブ、または「画面全体」と「システム音声」を選びます。ヘッドホンを使っていても相手の声が残ります。</span></span></button>
-          <button type="button" class="radio-card" data-src="mic" role="radio" aria-checked="true" id="srcMic"><span class="dot"></span><span><b>マイクのみ</b><span class="h">対面の会議や、スピーカーで相手の声を流しているとき。</span></span></button>
-          <p class="small" id="mixUnavailable" hidden style="margin:0">この端末では会議の音声を取り込めないため、マイクのみで録音します。</p>
-        </div>
-        <button type="button" class="btn btn-primary btn-lg" id="btnStart"><span style="width:12px;height:12px;border-radius:50%;background:#fff"></span>録音を開始</button>
-        <p class="small" style="margin:0;line-height:1.7">録音することを参加者に伝えてから始めましょう。（<button type="button" class="text-link" data-terms>利用規約</button>）</p>
-        <div id="startError" class="error-box" hidden></div>
-      </section>
-    </div>
-  </main>
-</section>
-
-<!-- ============================================================ 3 録音中 -->
-<section data-screen="recording" hidden>
-  <div class="recbar"><div class="recbar-in">
-    <div class="rec-state"><span class="rec-dot live" id="recDot"></span><span class="rec-label" id="recLabel">録音中</span></div>
-    <span class="timer" id="timer">00:00:00</span>
-    <div class="level" id="level" aria-hidden="true"></div>
-    <div class="rec-title"><b id="recTitle"></b><span class="note meta" id="recMeta"></span></div>
-    <div class="rec-actions">
-      <button type="button" class="btn btn-mark" id="btnMark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>ここ重要</button>
-      <button type="button" class="btn" id="btnPause">一時停止</button>
-      <button type="button" class="btn btn-primary" id="btnStop"><span style="width:10px;height:10px;background:#fff;border-radius:2px"></span><span class="desktop-only">終了して仕上げへ</span><span class="mobile-only">終了</span></button>
-    </div>
-  </div></div>
-  <main class="rec-grid">
-    <div class="notice mobile-only" id="mobileWarn"><span><b>録音が終わるまで、この画面のままにしてください。</b>画面を消したり、別のアプリに切り替えたりすると録音が止まります。</span></div>
-    <section class="card captions" aria-label="リアルタイム字幕">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:14px">リアルタイム字幕</b><span class="pill pill-gray" style="font-weight:400" id="capPill">速報</span></div>
-      <div class="cap-lines" id="capLines" aria-live="polite"></div>
-      <p class="note" style="margin:auto 0 0" id="capNote">相手の発言も含めた清書と話者分けは、AIが区切りごとに裏で進めています。</p>
-    </section>
-    <aside class="rec-side">
-      <div class="card"><b style="font-size:14px">書き起こしの進み具合</b><div class="bar"><span id="progBar"></span></div><ul class="seg-list" id="segList"></ul></div>
-      <div class="card"><b style="font-size:14px">ここ重要 <span style="font-weight:400;color:var(--sub)" id="markCount">（0件）</span></b><ul class="mark-list" id="markList"></ul><span class="small">議事録の「重要な場面」に時刻つきで載ります</span></div>
-      <label class="card" style="font-size:14px;font-weight:700">自分用メモ<textarea class="memo" id="memo" placeholder="気づいたことを自由に"></textarea><span class="small" style="font-weight:400">議事録の最後にそのまま載ります。AIには送りません。</span></label>
-      <p class="small" style="margin:0">録音中はこの画面を閉じないでください。<span class="mobile-only" style="display:inline">画面をロックしたり別のアプリに切り替えたりすると録音が止まります。</span></p>
-    </aside>
-  </main>
-</section>
-
-<!-- ============================================================ 4 仕上げ -->
-<section data-screen="finish" hidden>
-  <div class="finbar"><div class="finbar-in">
-    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span><div><h1 id="finTitle"></h1><div class="note" id="finMeta"></div></div></div>
-    <div class="actions">
-      <button type="button" class="btn" id="btnAudio" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span>音声も保存</span></button>
-      <a class="btn btn-outline" id="btnOpenDoc" href="#" target="_blank" rel="noopener" hidden>ドキュメントを開く</a>
-      <button type="button" class="btn btn-primary" id="btnSave" disabled><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 14h8"/><path d="M8 17h5"/></svg><span id="btnSaveLabel">Googleドキュメントに保存</span></button>
-    </div>
-  </div></div>
-  <main class="page page-wide" style="padding-top:24px;gap:20px">
-    <section class="card processing" id="procBox">
-      <b id="procTitle"><span class="spin"></span> 書き起こしを仕上げています…</b>
-      <div class="bar"><span id="procBar"></span></div>
-      <div class="note" id="procNote"></div>
-      <div class="fail-list" id="failList"></div>
-      <div id="procActions" style="display:flex;gap:10px;flex-wrap:wrap"></div>
-    </section>
-    <section class="card speakers" id="speakerBox" hidden aria-label="話者の名前">
-      <b style="font-size:14px">話者の名前を確認</b>
-      <div id="speakerSelects" style="display:flex;gap:18px;flex-wrap:wrap"></div>
-      <span class="small" style="margin-left:auto">名前の置き換えはこの画面の中だけで行います</span>
-    </section>
-    <div class="mtabs mobile-only" id="finTabs" role="tablist" hidden><button type="button" data-tab="minutes" aria-pressed="true">議事録</button><button type="button" data-tab="transcript" aria-pressed="false">書き起こし</button></div>
-    <div class="review" id="reviewBox" data-tab="minutes" hidden>
-      <article class="card minutes" aria-label="議事録">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap"><b style="font-size:16px">議事録</b><span class="small">文字を直接クリックして直せます</span><button type="button" class="link-btn" id="btnResummary" style="margin-left:auto">要約を作り直す</button></div>
-        <div class="minutes-body" id="minutesBody" contenteditable="true" spellcheck="false"></div>
-      </article>
-      <section class="card transcript" aria-label="書き起こし">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><b style="font-size:16px">書き起こし</b>
-          <input type="search" id="tSearch" aria-label="書き起こしを検索" placeholder="検索" class="input" style="margin-left:auto;width:180px;font-size:14px;padding:8px 12px"></div>
-        <div id="tLines"></div>
-      </section>
-    </div>
-  </main>
-</section>
-
-<!-- ============================================================ 5 保存完了 -->
-<section data-screen="saved" hidden>
-  <main class="saved">
-    <div class="card">
-      <span class="check-circle"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2D53A0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-      <h1 style="font-size:24px">Googleドキュメントに保存しました</h1>
-      <p style="margin:0;font-size:15px;color:var(--ink-2);word-break:break-all" id="savedName"></p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-        <a class="btn btn-primary" id="savedOpen" href="#" target="_blank" rel="noopener">ドキュメントを開く</a>
-        <button type="button" class="btn" id="btnCopyLink">リンクをコピー</button>
-      </div>
-      <dl class="kv"><div><dt>保存先</dt><dd id="savedFolder"></dd></div><div><dt>音声</dt><dd id="savedAudio">保存していません</dd></div></dl>
-      <button type="button" class="btn" id="btnAudio2" hidden>音声も保存する</button>
-    </div>
-    <section class="card rate-card" id="rateBox" hidden aria-label="使ってみた感想">
-      <b style="font-size:16px">使ってみた感想（βテスト・30秒）</b>
-      <span class="small">試行の記録として管理者に届きます。会議のタイトル・中身・参加者名は送りません。</span>
-      <div class="field"><span>議事録の出来（書き起こし・話者の分け方・要約）</span>
-        <div class="stars" id="rateStars" role="radiogroup" aria-label="議事録の出来">
-          <button type="button" data-v="1" aria-label="1 よくない">★</button><button type="button" data-v="2" aria-label="2">★</button><button type="button" data-v="3" aria-label="3 ふつう">★</button><button type="button" data-v="4" aria-label="4">★</button><button type="button" data-v="5" aria-label="5 とても良い">★</button>
-          <span class="small" id="rateLabel"></span>
-        </div>
-      </div>
-      <label class="field">自分で議事録を作る場合と比べて、減った時間
-        <select class="input" id="rateSaved"><option value="">選んでください</option><option value="0">減っていない</option><option value="5">5分くらい</option><option value="10">10分くらい</option><option value="15">15分くらい</option><option value="30">30分くらい</option><option value="60">1時間以上</option></select>
-      </label>
-      <label class="field">ひとこと（任意）<textarea class="input" id="rateComment" rows="2" maxlength="500" placeholder="例：話者の分け方が一部ずれた／要約がわかりやすかった"></textarea></label>
-      <span class="small">個人名や会議の中身は書かないでください。</span>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button type="button" class="btn btn-primary" id="rateSend" disabled>送る</button>
-        <button type="button" class="link-btn" id="rateSkip">今回は送らない</button>
-      </div>
-    </section>
-    <button type="button" class="link-btn" style="align-self:center;color:var(--blue);font-weight:700" data-go="home">ホームに戻る</button>
-  </main>
-</section>
-
-<!-- ============================================================ 6 マイページ -->
-<section data-screen="mypage" hidden>
-  <main class="page">
-    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
-      <div><div class="sub" id="myEmail"></div><h1>マイページ</h1></div>
-    </div>
-    <div class="my-grid">
-      <section class="card my-card" aria-label="保存先">
-        <b>保存先</b>
-        <div class="my-row"><span class="my-folder" id="myFolder">マイドライブ ／ 議事録アプリ（標準）</span></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button type="button" class="btn btn-outline" id="btnPickFolder">フォルダを選ぶ</button>
-          <button type="button" class="btn" id="btnResetFolder">標準に戻す</button>
-        </div>
-        <span class="small" id="pickNote">マイドライブ・共有ドライブのフォルダを選べます。共有ドライブは「コンテンツ管理者」以上の権限が必要です。</span>
-      </section>
-      <section class="card my-card" aria-label="録音の既定値">
-        <b>録音の既定値</b>
-        <label class="field">音の取り方<select class="input" id="setSource"><option value="auto">形式に合わせる（おすすめ）</option><option value="mix">いつも「マイク＋会議の音声」</option><option value="mic">いつも「マイクのみ」</option></select></label>
-        <label class="field">言語<select class="input" id="setLang"><option value="ja">日本語</option><option value="en">英語</option></select></label>
-      </section>
-      <section class="card my-card" aria-label="機能のオン・オフ">
-        <b>機能のオン・オフ</b>
-        <label class="check"><input type="checkbox" id="setCaptions">録音中のリアルタイム字幕を出す</label>
-        <label class="check"><input type="checkbox" id="setCalendar">ホームに今日の予定（Googleカレンダー）を出す</label>
-        <label class="check"><input type="checkbox" id="setAudio">仕上げ画面に「音声も保存」ボタンを出す</label>
-        <label class="check"><input type="checkbox" id="setResume">録音をこのPCに一時保存し、途中で閉じても続きから仕上げられるようにする</label>
-        <label class="field" style="font-weight:400">ホームの「最近の議事録」の表示件数<select class="input" id="setRecent"><option value="3">3件</option><option value="6">6件</option><option value="9">9件</option><option value="0">表示しない（検索だけ使う）</option></select></label>
-      </section>
-      <section class="card my-card" aria-label="利用規約">
-        <b>利用規約</b>
-        <span class="note">録音する会議の条件（録音の告知・未成年の不参加・個人情報や機密を扱わない など）です。</span>
-        <div><button type="button" class="btn btn-outline" data-terms>利用規約を見る</button></div>
-      </section>
-      <section class="card my-card" aria-label="管理者への連絡">
-        <b>不具合・要望を送る</b>
-        <span class="note">気づいたこと・困ったことを管理者に送れます（βテスト期間）。</span>
-        <div><button type="button" class="btn btn-outline" id="btnFeedback">管理者に送る</button></div>
-      </section>
-      <section class="card my-card mobile-only" aria-label="ログアウト" style="flex-direction:column">
-        <b>アカウント</b>
-        <div><button type="button" class="btn" id="btnLogout2">ログアウト</button></div>
-      </section>
-    </div>
-    <p class="small" id="mySaved" style="margin:0">設定は自動で保存され、別のPCでも同じアカウントなら引き継がれます。</p>
-    <p class="small" style="margin:0" id="myVersion"></p>
-  </main>
-</section>
-
-<!-- ============================================================ 7 使い方 -->
-<section data-screen="help" hidden>
-  <main class="page help">
-    <div class="page-title"><span class="mark4"><span></span><span></span><span></span><span></span></span>
-      <div><div class="sub">βテスト版</div><h1>使い方</h1></div>
-    </div>
-
-    <section class="card help-card">
-      <h2>使う前に（ルール）　<button type="button" class="text-link" data-terms style="font-size:14px">利用規約の全文</button></h2>
-      <ul>
-        <li>個人情報・機密情報を扱う会議では使いません。</li>
-        <li>未成年が参加する打合せは Google Meet で行い、このアプリは使いません。</li>
-        <li>録音する前に、参加者に「録音して議事録を作ります」と伝えます。</li>
-        <li>議事録は社内の叩き台です。社外に出すときは、人が確認して書き直します。</li>
-      </ul>
-    </section>
-
-    <section class="card help-card">
-      <h2>基本の流れ</h2>
-      <ol>
-        <li><b>ホーム</b>で今日の予定の「この予定で録音」を押す（予定がなければ「今すぐ録音」）。タイトル・日時・参加者が自動で入ります。</li>
-        <li><b>準備</b>で内容を確かめ、参加者に録音を伝えてから「録音を開始」。</li>
-        <li><b>録音</b>中は大事な場面で「ここ重要」。気づいたことは「自分用メモ」へ（AIには送りません）。</li>
-        <li>「終了して仕上げへ」を押すと、AIが書き起こしと要約を作ります（数十秒〜数分）。</li>
-        <li><b>仕上げ</b>で「話者A」などに名前を当て、議事録の文字を直接クリックして直します。</li>
-        <li>「Googleドキュメントに保存」で完了。あとからホームの「最近の議事録」→「仕上げ画面で開く」で見返せます。</li>
-      </ol>
-    </section>
-
-    <div class="help-grid">
-      <section class="card help-card">
-        <h2>Zoom・Teamsで録る（PC）</h2>
-        <ol>
-          <li>音の取り方で <b>「マイク＋会議の音声」</b> を選ぶ。</li>
-          <li>共有の画面が出たら、どちらかを選ぶ。
-            <ul>
-              <li>会議を<b>ブラウザ</b>で開いている：その<b>タブ</b>を選び「タブの音声も共有」をオン（いちばん確実）</li>
-              <li>会議を<b>アプリ</b>で開いている：<b>「画面全体」</b>を選び「システム音声を共有」をオン</li>
-            </ul>
-          </li>
-          <li>録音中に <b>「相手の声：届いています」</b>（青）が出ればOK。</li>
-        </ol>
-        <p class="note">Macで初めて使うときは「システム設定 → プライバシーとセキュリティ → 画面とシステムオーディオの録音」で Google Chrome をオンにしてください。</p>
-      </section>
-      <section class="card help-card">
-        <h2>対面で録る（iPhone）</h2>
-        <ol>
-          <li><b>Safari</b> で開く（LINE・Slackなどのアプリ内では開かない）。</li>
-          <li>音の取り方は「マイクのみ」。iPhoneは机の真ん中に置く。</li>
-          <li>録音中は<b>画面を消さない・別のアプリに切り替えない</b>。長い会議は充電しながら。</li>
-        </ol>
-        <p class="note">Safariの共有ボタン →「ホーム画面に追加」で、アプリのように開けます。iPhoneでは録音を優先するため、リアルタイム字幕は出しません。</p>
-      </section>
-    </div>
-
-    <section class="card help-card">
-      <h2>困ったとき</h2>
-      <table class="help-table">
-        <tr><th>こんなとき</th><th>こうする</th></tr>
-        <tr><td>「混雑待ち」と出た</td><td>AIが混み合っています。1〜2分後に自動でやり直すので、そのまま待ちます。</td></tr>
-        <tr><td>「書き起こしに失敗」と出た</td><td>▶で音が録れているか確かめ、少し待って「やり直す」。</td></tr>
-        <tr><td>録音中にタブを閉じた・PCが固まった</td><td>開き直してログインすると、ホームに「途中で閉じた録音があります」が出ます。「続きから仕上げる」を押します。</td></tr>
-        <tr><td>相手の声が録れていない</td><td>共有のしかた（上の「Zoom・Teamsで録る」）と、Macの許可を確かめます。</td></tr>
-        <tr><td>保存できない</td><td>一度ログアウトしてログインし直し、もう一度「保存」。保存先を変えている人はマイページも確認。</td></tr>
-        <tr><td>それでも解決しない</td><td>エラーの近くの「このエラーを管理者に知らせる」、またはマイページの「管理者に送る」。</td></tr>
-      </table>
-    </section>
-
-    <section class="card help-card">
-      <h2>データの扱い</h2>
-      <ul>
-        <li>議事録は、<b>自分のGoogleドライブ</b>（標準は「議事録アプリ」フォルダ）にGoogleドキュメントで保存されます。</li>
-        <li>AI（Gemini）に送るのは<b>音声と参加人数だけ</b>です。参加者の名前・自分用メモは送りません。</li>
-        <li>音声ファイルは「音声も保存」を押したときだけ保存されます。</li>
-        <li>途中再開用の一時保存はこのPC（ブラウザ）の中だけにあり、ドキュメントを保存すると消えます。</li>
-      </ul>
-    </section>
-  </main>
-</section>
-
-<!-- ============================================================ 管理者への連絡（ダイアログ） -->
+<!-- ============================================================ 不具合・要望の送信 -->
 <dialog id="reportDlg" class="dlg">
-  <form method="dialog" class="dlg-in">
-    <b style="font-size:17px" id="repTitle">管理者に知らせる</b>
-    <span class="note">宛先は管理者のみです。書き起こし・音声・参加者名・会議のタイトルは送りません。</span>
-    <label class="field">ひとこと（任意）<textarea class="input" id="repComment" rows="4" maxlength="1500" placeholder="例：Zoomで画面全体を共有したら止まった"></textarea></label>
-    <span class="small">個人情報や会議の中身は書かないでください。</span>
-    <details><summary class="small" style="cursor:pointer">送られる診断情報を見る</summary><pre class="dlg-pre" id="repDetail"></pre></details>
-    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-      <button type="button" class="btn" id="repCancel">やめる</button>
-      <button type="button" class="btn btn-primary" id="repSend">送る</button>
-    </div>
+  <form method="dialog" class="col">
+    <h2 class="h2s">不具合・要望を送る</h2>
+    <p class="note">管理者に届きます。送られるのは、ここに書いた内容と、画面の状態（版・ブラウザ・直前のエラー）だけです。領収書の中身は送りません。</p>
+    <label class="field">内容<textarea class="input" id="repText" rows="5" placeholder="例：保存を押したら「保存できませんでした」と出た"></textarea></label>
+    <div class="row-line"><button type="button" class="btn btn-md grow" id="btnRepCancel">やめる</button><button type="button" class="btn btn-primary btn-md grow" id="btnRepSend">送る</button></div>
   </form>
 </dialog>
 
-<!-- ============================================================ 利用規約（サブウィンドウ） -->
-<dialog id="termsDlg" class="dlg">
-  <div class="dlg-in terms">
-    <b style="font-size:18px">議事録アプリ 利用規約</b>
-    <span class="small">このアプリで録音する会議は、次の条件をすべて満たしていることが前提です。</span>
-    <ol>
-      <li><b>録音の告知</b>：参加者全員に「録音して議事録を作る」ことを伝えている。</li>
-      <li><b>未成年の不参加</b>：未成年が参加していない（未成年が参加する打合せは Google Meet で行う）。</li>
-      <li><b>個人情報・機密情報</b>：個人情報・機密情報を扱う会議ではない。</li>
-      <li><b>用途</b>：議事録は個人の振り返りと社内の叩き台に使う。社外に出すときは、人が内容を確認して書き直す。</li>
-      <li><b>AIへの送信</b>：音声と参加人数がAI（Google Gemini・無料枠）に送られることを理解している。無料枠では、送った内容がサービス改善に使われることがある。</li>
-      <li><b>保存先</b>：議事録は自分のGoogleドライブに保存され、共有範囲は自分で管理する。</li>
-    </ol>
-    <span class="small">βテスト期間中のルールです。内容は管理者が見直すことがあります。</span>
-    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
-      <button type="button" class="btn btn-primary" id="termsClose">閉じる</button>
+<dialog id="pickDlg" class="dlg">
+  <div class="col">
+    <div class="col" id="pickStep1">
+      <h2 class="h2s">フォルダを選べませんでしたか？</h2>
+      <p class="note">iPhoneでは、Googleの仕組みでフォルダ選択がエラーになることがあります（「APIデベロッパーキーが無効です」「クッキーへのアクセスを許可」など）。次の方法で選べます。</p>
+      <ol class="tips">
+        <li><b>もう一度試す</b>：アカウント選択の画面で、自分のアカウントをタップしてから選ぶ</li>
+        <li><b>PCで選ぶ</b>：PCのChromeでマイページ →「選び直す」。iPhoneにもそのまま反映されます</li>
+        <li id="pickAppNote"><b>Safariで選ぶ</b>：下のボタンでSafariを開いて選び、このアプリに戻る</li>
+      </ol>
+      <button type="button" class="btn btn-primary btn-md" id="pickTryHere">もう一度試す</button>
+      <a class="btn btn-outline btn-md" id="pickSafari" href="#">Safariで開いて選ぶ</a>
+      <button type="button" class="btn btn-outline btn-md" id="pickCopy">Safariが開かないとき：住所をコピー</button>
+      <button type="button" class="btn btn-md" data-action="pick-close">閉じる（選ばずに戻る）</button>
+    </div>
+    <div class="col" id="pickStep2" hidden>
+      <h2 class="h2s">Safariでフォルダを選ぶ</h2>
+      <p class="note">Safariでフォルダを選び終えたら、このアプリに戻ってください。自動で反映されます。反映されないときは下のボタンを押してください。</p>
+      <button type="button" class="btn btn-primary btn-md" id="pickReload">選んだフォルダを反映する</button>
+      <button type="button" class="btn btn-md" data-action="pick-close">閉じる</button>
+    </div>
+    <div class="col" id="pickStep3" hidden>
+      <h2 class="h2s">保存先を選びました</h2>
+      <p class="note">保存先を「<b id="pickDoneName"></b>」にしました。<br><b>ホーム画面のアプリに戻ってください。</b>このSafariの画面は閉じて大丈夫です。</p>
+      <button type="button" class="btn btn-md" data-action="pick-close">閉じる</button>
     </div>
   </div>
 </dialog>
 
-<div class="card-menu" id="cardMenu" hidden>
-  <button type="button" data-act="hide">一覧から外す<span class="small">ドキュメントはドライブに残ります</span></button>
-  <button type="button" data-act="trash" class="danger">ゴミ箱に移す<span class="small">30日以内ならドライブのゴミ箱から戻せます</span></button>
-</div>
-
+<input type="file" id="fileShoot" accept="image/*" capture="environment" hidden>
+<input type="file" id="filePick" accept="image/*,application/pdf" hidden>
+<input type="file" id="fileMulti" accept="image/*,application/pdf" multiple hidden>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="config.js?v=1.1.0"></script>
+<script src="config.js?v=1.2.3"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js?v=1.4.1"></script>
+<script src="app.js?v=1.2.3"></script>
 </body>
 </html>
