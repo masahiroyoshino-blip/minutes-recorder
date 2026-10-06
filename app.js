@@ -14,7 +14,7 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.4.2';
+  var VERSION = '1.4.3';
   var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
@@ -458,8 +458,11 @@
         try {
           // 保存用の音声は m4a（AAC）を優先：Gemini Notebook などが webm を読めないため（v1.4.2）
           var fullMime = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'].filter(function (t) { return window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0] || R.mime;
-          R.full = fullMime ? new MediaRecorder(got.stream, { mimeType: fullMime, audioBitsPerSecond: 32000 }) : new MediaRecorder(got.stream);
-          R.fullChunks = []; R.full.ondataavailable = function (e) { if (e.data && e.data.size) R.fullChunks.push(e.data); };
+          try { R.full = new MediaRecorder(got.stream, { mimeType: fullMime, audioBitsPerSecond: 32000 }); }
+          catch (e1) { R.full = R.mime ? new MediaRecorder(got.stream, { mimeType: R.mime, audioBitsPerSecond: 32000 }) : new MediaRecorder(got.stream); }   // m4a が使えない環境は従来形式
+          S.m.fullMime = R.full.mimeType || fullMime;
+          // 会議全体の音声も一時保存しておき、途中再開した会議でも「音声も保存」できるようにする（v1.4.3）
+          R.fullChunks = []; R.full.ondataavailable = function (e) { if (e.data && e.data.size) { R.fullChunks.push(e.data); backupChunk('full', e.data); } };
           R.full.start(10000);
         } catch (e) { R.full = null; }
       }
@@ -956,7 +959,9 @@
   function updateAudioButtons() {
     var m = S.m, can = !!(m && m.audioBlob && !m.audioSaved && S.settings.audioButton && !m.viewing);
     $('#btnAudio').hidden = !can; $('#btnAudio2').hidden = !can;
-    $('#savedAudio').textContent = m && m.audioSaved ? '保存しました（' + m.audioSaved.name + '）' : '保存していません';
+    $('#savedAudio').textContent = m && m.audioSaved ? '保存しました（' + m.audioSaved.name + '）'
+      : m && !m.audioBlob && !m.viewing ? (S.settings.audioButton ? '保存できません（この会議の音声が残っていません）' : '保存していません（マイページで「音声も保存」がオフ）')
+      : '保存していません';
   }
   function resumableUpload(meta, blob) {
     if (DEMO) return sleep(600).then(function () { return { id: 'audio', name: meta.name }; });
@@ -1200,7 +1205,7 @@
   function backupMeeting() {
     if (!backupOn()) return Promise.resolve();
     var m = S.m;
-    var rec = { id: m.id, title: m.title, when: m.when, format: m.format, people: m.people, lang: m.lang, source: m.source, startedAt: m.startedAt.getTime(), mime: m.mime,
+    var rec = { id: m.id, title: m.title, when: m.when, format: m.format, people: m.people, lang: m.lang, source: m.source, startedAt: m.startedAt.getTime(), mime: m.mime, fullMime: m.fullMime || '',
       marks: m.marks, memo: m.memo, speakerNotes: m.speakerNotes, activeSec: R && R.active != null ? Math.round(R.active / 1000) : (m.durationSec || 0), durationSec: m.durationSec || null,
       segs: m.segs.filter(Boolean).map(function (s) { return { idx: s.idx, offsetSec: s.offsetSec, lenSec: s.lenSec == null ? null : s.lenSec, status: s.status, utter: s.utter || null }; }) };
     return tx('meeting', 'readwrite', function (st) { return st.put(rec, 'current'); }).catch(function (e) { noteError('一時保存', e); });
@@ -1242,6 +1247,7 @@
       S.m = { id: b.id, title: b.title, when: b.when, format: b.format, people: b.people || [], lang: b.lang, source: b.source, startedAt: new Date(b.startedAt), mime: b.mime,
         segs: [], marks: b.marks || [], memo: b.memo || '', speakerNotes: b.speakerNotes || '', summary: null, names: {}, edited: false, saved: null,
         durationSec: b.durationSec || b.activeSec || 0, resumed: true };
+      if (chunks.full && chunks.full.length) S.m.audioBlob = new Blob(chunks.full, { type: b.fullMime || b.mime || 'audio/webm' });   // 会議全体の音声も復元
       R = { stopped: true };   // 録音そのものは終わっている扱い
       S.pendingResume = null; $('#resumeBox').hidden = true;
       var pending = [];
