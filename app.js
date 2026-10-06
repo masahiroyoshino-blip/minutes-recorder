@@ -14,7 +14,7 @@
 
   var CFG = window.MINUTES_CONFIG || {};
   var DEMO = /[?&]demo=1\b/.test(location.search);
-  var VERSION = '1.4.1';
+  var VERSION = '1.4.2';
   var IS_IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   var BUSY_RE = /high demand|overloaded|UNAVAILABLE|RESOURCE_EXHAUSTED|→429|→503|HTTP 429|HTTP 503/i;   // AIの混雑
   var AUTO_RETRY_SEC = [60, 120];   // 混雑のときは画面側でも自動でやり直す（1分後、2分後）
@@ -456,7 +456,9 @@
       // 「音声も保存」用に、会議全体を1本で録っておく（区切りなし。保存ボタンを押した人だけドライブへ）
       if (S.settings.audioButton) {
         try {
-          R.full = R.mime ? new MediaRecorder(got.stream, { mimeType: R.mime, audioBitsPerSecond: 32000 }) : new MediaRecorder(got.stream);
+          // 保存用の音声は m4a（AAC）を優先：Gemini Notebook などが webm を読めないため（v1.4.2）
+          var fullMime = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4'].filter(function (t) { return window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0] || R.mime;
+          R.full = fullMime ? new MediaRecorder(got.stream, { mimeType: fullMime, audioBitsPerSecond: 32000 }) : new MediaRecorder(got.stream);
           R.fullChunks = []; R.full.ondataavailable = function (e) { if (e.data && e.data.size) R.fullChunks.push(e.data); };
           R.full.start(10000);
         } catch (e) { R.full = null; }
